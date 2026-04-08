@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetractionImpact — Retraction Fragility Quantifier</title>
+<meta property="og:title" content="RetractionImpact — Retraction Fragility">
+<meta property="og:description" content="Quantify how retractions change pooled meta-analysis estimates. Retraction Fragility Index. Browser-based.">
+<style>
+:root{--bg:#0a0e17;--surface:#131926;--surface2:#1a2236;--border:#2a3450;--text:#e2e8f0;--text2:#94a3b8;--accent:#f97316;--accent2:#fb923c;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--cyan:#06b6d4;--indigo:#6366f1;--radius:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+header{text-align:center;padding:30px 0 20px;border-bottom:1px solid var(--border);margin-bottom:24px}
+header h1{font-size:2rem;background:linear-gradient(135deg,var(--accent),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p{color:var(--text2);margin-top:6px;font-size:0.95rem}
+.tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:10px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--text2);transition:all 0.2s;font-size:0.9rem}
+.tab:hover{border-color:var(--accent)}.tab.active{background:var(--accent);color:white;border-color:var(--accent)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h3{font-size:1.1rem;margin-bottom:12px;color:var(--accent2)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+label{display:block;font-size:0.85rem;color:var(--text2);margin-bottom:4px}
+input,select,textarea{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.9rem}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+textarea{font-family:'Consolas',monospace;resize:vertical}
+.btn{padding:10px 20px;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s}
+.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:var(--accent2)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:6px 14px;font-size:0.82rem}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:0.88rem}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--text2);font-weight:600;font-size:0.82rem;text-transform:uppercase}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat-box{background:var(--surface2);border-radius:var(--radius);padding:14px;text-align:center}
+.stat-box .value{font-size:1.6rem;font-weight:700;color:var(--accent2)}
+.stat-box .label{font-size:0.78rem;color:var(--text2);margin-top:4px}
+.plot-container{background:var(--surface2);border-radius:var(--radius);padding:16px;margin-top:12px}
+canvas{width:100%;background:transparent}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600}
+.badge-green{background:rgba(34,197,94,0.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,0.15);color:var(--red)}
+.badge-amber{background:rgba(245,158,11,0.15);color:var(--amber)}
+.info-box{background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:0.88rem;color:var(--text2)}
+footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;border-top:1px solid var(--border);margin-top:30px}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>RetractionImpact</h1>
+  <p>Retraction Fragility Quantifier — How robust is your meta-analysis to study retractions?</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('data')">Data Input</div>
+  <div class="tab" onclick="showTab('results')">Results</div>
+  <div class="tab" onclick="showTab('waterfall')">Impact Waterfall</div>
+  <div class="tab" onclick="showTab('fragility')">Fragility Curve</div>
+  <div class="tab" onclick="showTab('loo')">Leave-One-Out</div>
+  <div class="tab" onclick="showTab('guide')">Guide</div>
+</div>
+
+<!-- DATA INPUT -->
+<div class="panel active" id="panel-data">
+  <div class="card">
+    <h3>Load Example</h3>
+    <div class="btn-group">
+      <button class="btn btn-secondary btn-sm" onclick="loadExample('statin')">Statins & Mortality (robust)</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadExample('ivermectin')">Ivermectin & COVID (fragile)</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadExample('surgery')">Surgery vs Medical (marginal)</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Meta-Analysis Data</h3>
+    <div class="info-box">One study per line: Study name, effect estimate (log scale), standard error. The effect is assumed to be on log scale (log OR, log RR, log HR, or SMD).</div>
+    <div class="grid-2">
+      <div><label>Effect measure</label>
+        <select id="effectType"><option value="logOR">Log OR</option><option value="logRR">Log RR</option><option value="logHR">Log HR</option><option value="SMD">SMD</option></select>
+      </div>
+      <div><label>Null value</label><input type="number" id="nullVal" value="0" step="0.1" disabled><p style="font-size:0.75rem;color:var(--text2)">0 for log scales, 0 for SMD</p></div>
+    </div>
+    <div style="margin-top:12px">
+      <label>Study data (study, effect, SE)</label>
+      <textarea id="dataInput" rows="14" placeholder="Study1  -0.15  0.08&#10;Study2  -0.22  0.12"></textarea>
+    </div>
+    <div class="grid-2" style="margin-top:12px">
+      <div><label>Pooling method</label><select id="poolMethod"><option value="dl">DerSimonian-Laird</option><option value="fe">Fixed-effect</option></select></div>
+      <div><label>Max retraction depth</label><input type="number" id="maxDepth" value="5" min="1" max="10"><p style="font-size:0.75rem;color:var(--text2)">Max # studies to retract combinatorially</p></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="runAnalysis()">Analyze Retraction Impact</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="panel" id="panel-results">
+  <div class="card"><h3>Retraction Fragility Summary</h3><div id="fragilitySum" class="stat-grid"></div></div>
+  <div class="card"><h3>Original Meta-Analysis</h3><div id="originalMA"></div></div>
+  <div class="card"><h3>Most Impactful Single Retraction</h3><div id="worstSingle"></div></div>
+  <div class="card"><h3>Retraction Fragility Index (RFI)</h3><div id="rfiResult"></div></div>
+  <div class="card"><h3>Leave-One-Out Impact Table</h3>
+    <table id="looTable"><thead><tr><th>Retracted Study</th><th>Pooled Est.</th><th>Change</th><th>% Change</th><th>Reversal?</th><th>New P</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button></div>
+</div>
+
+<!-- WATERFALL -->
+<div class="panel" id="panel-waterfall">
+  <div class="card"><h3>Impact Waterfall — Effect of Retracting Each Study</h3>
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:8px">Bars show the change in pooled estimate when each study is removed. Sorted by absolute impact.</p>
+    <div class="plot-container"><canvas id="waterfallCanvas" width="950" height="500"></canvas></div>
+    <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportPlot('waterfallCanvas','retraction_waterfall')">Export PNG</button></div>
+  </div>
+</div>
+
+<!-- FRAGILITY CURVE -->
+<div class="panel" id="panel-fragility">
+  <div class="card"><h3>Fragility Curve — P-value After Sequential Retraction</h3>
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:8px">Studies removed in order of most-to-least impactful. Shows how quickly significance erodes.</p>
+    <div class="plot-container"><canvas id="fragilityCanvas" width="950" height="500"></canvas></div>
+  </div>
+</div>
+
+<!-- LOO -->
+<div class="panel" id="panel-loo">
+  <div class="card"><h3>Leave-One-Out Forest Plot</h3>
+    <div class="plot-container"><canvas id="looCanvas" width="950" height="500"></canvas></div>
+  </div>
+</div>
+
+<!-- GUIDE -->
+<div class="panel" id="panel-guide">
+  <div class="card">
+    <h3>Retraction Impact — Method Guide</h3>
+    <div class="info-box"><strong>Motivation:</strong> Retractions in meta-analyses can invalidate pooled conclusions. The Retraction Fragility Index (RFI) quantifies how many studies would need to be retracted to reverse the statistical conclusion (significant → non-significant or vice versa).</div>
+    <table>
+      <tr><td><strong>RFI = 1</strong></td><td>Extremely fragile — removing any single study reverses the conclusion.</td></tr>
+      <tr><td><strong>RFI = 2–3</strong></td><td>Fragile — a small cluster of retractions can change the conclusion.</td></tr>
+      <tr><td><strong>RFI ≥ 4</strong></td><td>Moderately robust — multiple retractions needed.</td></tr>
+      <tr><td><strong>RFI = k</strong></td><td>Maximally robust — even removing all but 2 studies doesn't change conclusion.</td></tr>
+    </table>
+    <h3 style="margin-top:16px">How It Works</h3>
+    <p style="color:var(--text2);margin-top:8px">1. Compute the full pooled estimate and its P-value.<br>2. For each subset of 1, 2, ..., d studies (up to max depth), re-pool without those studies.<br>3. The RFI is the smallest number of retractions that reverses significance (crosses P = 0.05).<br>4. The fragility curve shows P-value degradation as studies are greedily removed (most impactful first).</p>
+  </div>
+</div>
+
+<footer>RetractionImpact v1.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
+</div>
+
+<script>
+function normalCDF(z){const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;const s=z<0?-1:1;const x=Math.abs(z)/Math.sqrt(2);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return 0.5*(1+s*y)}
+function normalQuantile(p){if(p<=0)return-Infinity;if(p>=1)return Infinity;if(p===0.5)return 0;const a=p<0.5?p:1-p;const t=Math.sqrt(-2*Math.log(a));const c0=2.515517,c1=0.802853,c2=0.010328,d1=1.432788,d2=0.189269,d3=0.001308;let z=t-(c0+c1*t+c2*t*t)/(1+d1*t+d2*t*t+d3*t*t*t);if(p<0.5)z=-z;return z}
+function chiSqP(x,df){if(x<=0)return 1;return 1-regGammaP(df/2,x/2)}
+function regGammaP(a,x){if(x<=0)return 0;const lga=lgamma(a);if(x<a+1){let s=1/a,t=1/a;for(let n=1;n<200;n++){t*=x/(a+n);s+=t;if(Math.abs(t)<1e-12*Math.abs(s))break}return s*Math.exp(-x+a*Math.log(x)-lga)}else{let f=1,b2=x+1-a,c2=1/1e-30,d2=1/b2;f=d2;for(let i=1;i<=200;i++){const an=-i*(i-a),bn=x+2*i+1-a;d2=bn+an*d2;if(Math.abs(d2)<1e-30)d2=1e-30;d2=1/d2;c2=bn+an/c2;if(Math.abs(c2)<1e-30)c2=1e-30;f*=d2*c2;if(Math.abs(d2*c2-1)<1e-10)break}return 1-f*Math.exp(-x+a*Math.log(x)-lga)}}
+function lgamma(x){const g=7,c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];if(x<0.5)return Math.log(Math.PI/Math.sin(Math.PI*x))-lgamma(1-x);x-=1;let a=c[0];const t=x+g+0.5;for(let i=1;i<g+2;i++)a+=c[i]/(x+i);return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a)}
+
+function parseData(){
+  const raw=document.getElementById('dataInput').value.trim();
+  if(!raw)return null;
+  const lines=raw.split('\n').filter(l=>l.trim());
+  const data=[];
+  for(const line of lines){
+    const p=line.trim().split(/[\t,\s]+/);
+    if(p.length<3)continue;
+    const study=p[0];
+    const y=parseFloat(p[1]),se=parseFloat(p[2]);
+    if(!isFinite(y)||!isFinite(se)||se<=0)continue;
+    data.push({study,y,se,v:se*se});
+  }
+  return data.length>=3?data:null;
+}
+
+function pool(data,method){
+  const k=data.length;
+  if(k<2)return null;
+  let sumW=0,sumWY=0;
+  for(const d of data){const w=1/d.v;sumW+=w;sumWY+=w*d.y}
+  const fe=sumWY/sumW;
+  let Q=0;
+  for(const d of data){const w=1/d.v;Q+=w*(d.y-fe)*(d.y-fe)}
+  const df=k-1;
+  let tau2=0;
+  if(method==='dl'){
+    let sumW2=0;for(const d of data)sumW2+=(1/d.v)*(1/d.v);
+    const C=sumW-sumW2/sumW;
+    tau2=Math.max(0,(Q-df)/C);
+  }
+  let sw=0,swy=0;
+  for(const d of data){const w=1/(d.v+tau2);sw+=w;swy+=w*d.y}
+  const beta=swy/sw;
+  const se=1/Math.sqrt(sw);
+  const z=beta/se;
+  const p=2*(1-normalCDF(Math.abs(z)));
+  const I2=Q>df?((Q-df)/Q)*100:0;
+  const zc=normalQuantile(0.975);
+  return{beta,se,z,p,ci:[beta-zc*se,beta+zc*se],Q,I2,tau2,k};
+}
+
+let lastResults=null;
+
+function runAnalysis(){
+  const data=parseData();
+  if(!data){alert('Need ≥3 studies (study, effect, SE).');return}
+  const method=document.getElementById('poolMethod').value;
+  const full=pool(data,method);
+  if(!full)return;
+
+  const effectType=document.getElementById('effectType').value;
+  const isLog=effectType!=='SMD';
+  const fullSig=full.p<0.05;
+
+  // Leave-one-out
+  const loo=data.map((d,i)=>{
+    const sub=data.filter((_,j)=>j!==i);
+    const res=pool(sub,method);
+    const reversal=(full.p<0.05&&res.p>=0.05)||(full.p>=0.05&&res.p<0.05);
+    return{study:d.study,idx:i,...res,change:res.beta-full.beta,pctChange:((res.beta-full.beta)/Math.abs(full.beta||1e-10))*100,reversal};
+  });
+
+  // Sort by absolute impact for greedy removal
+  const sortedByImpact=[...loo].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
+
+  // Greedy fragility curve: remove most impactful, then next most, etc.
+  const fragilityCurve=[{k:data.length,beta:full.beta,se:full.se,p:full.p,ci:full.ci,removed:[]}];
+  let remaining=[...data];
+  const removalOrder=[];
+  for(let d=0;d<Math.min(data.length-2,parseInt(document.getElementById('maxDepth').value)||5);d++){
+    // Find which remaining study, if removed, has largest impact
+    let bestIdx=-1,bestAbsChange=0;
+    for(let i=0;i<remaining.length;i++){
+      const sub=remaining.filter((_,j)=>j!==i);
+      if(sub.length<2)continue;
+      const res=pool(sub,method);
+      const absChange=Math.abs(res.beta-full.beta);
+      if(absChange>bestAbsChange){bestAbsChange=absChange;bestIdx=i}
+    }
+    if(bestIdx===-1)break;
+    removalOrder.push(remaining[bestIdx].study);
+    remaining=remaining.filter((_,i)=>i!==bestIdx);
+    const res=pool(remaining,method);
+    fragilityCurve.push({k:remaining.length,...res,removed:[...removalOrder]});
+  }
+
+  // Retraction Fragility Index: smallest number of retractions to reverse significance
+  let rfi=null;
+  for(let i=1;i<fragilityCurve.length;i++){
+    const cur=fragilityCurve[i];
+    const wasSignificant=full.p<0.05;
+    const nowSignificant=cur.p<0.05;
+    if(wasSignificant!==nowSignificant){rfi=i;break}
+  }
+
+  // Also check all single removals for RFI=1
+  if(rfi===null){
+    const anySingleReversal=loo.some(l=>l.reversal);
+    if(anySingleReversal)rfi=1;
+  }
+
+  // Combinatorial search for small depths (if RFI not found greedily)
+  if(rfi===null){
+    const maxD=Math.min(parseInt(document.getElementById('maxDepth').value)||5,data.length-2);
+    outer:
+    for(let d=2;d<=maxD;d++){
+      // For d=2,3 do exhaustive; for d>3 rely on greedy
+      if(d<=3&&data.length<=20){
+        const combos=combinations(data.length,d);
+        for(const combo of combos){
+          const sub=data.filter((_,i)=>!combo.includes(i));
+          if(sub.length<2)continue;
+          const res=pool(sub,method);
+          if((full.p<0.05)!==(res.p<0.05)){rfi=d;break outer}
+        }
+      }
+    }
+  }
+
+  lastResults={data,full,loo,fragilityCurve,rfi,sortedByImpact,isLog,effectType,method};
+  renderResults();renderWaterfall();renderFragilityCurve();renderLOOForest();
+  showTab('results');
+}
+
+function combinations(n,k){
+  const result=[];
+  function gen(start,combo){
+    if(combo.length===k){result.push([...combo]);return}
+    for(let i=start;i<n;i++){combo.push(i);gen(i+1,combo);combo.pop()}
+  }
+  gen(0,[]);return result;
+}
+
+function fmtEst(v,isLog){return isLog?Math.exp(v).toFixed(3):v.toFixed(4)}
+
+function renderResults(){
+  const r=lastResults;
+  const {full,rfi,loo,isLog}=r;
+  const rfiLabel=rfi===null?'∞ (robust)':rfi.toString();
+  const rfiBadge=rfi===null?'badge-green':rfi<=1?'badge-red':rfi<=3?'badge-amber':'badge-green';
+  const sigLabel=full.p<0.05?'Significant':'Not significant';
+
+  document.getElementById('fragilitySum').innerHTML=`
+    <div class="stat-box"><div class="value" style="font-size:2rem;color:${rfi&&rfi<=2?'var(--red)':'var(--green)'}">${rfiLabel}</div><div class="label">Retraction Fragility Index</div></div>
+    <div class="stat-box"><div class="value">${r.data.length}</div><div class="label">Studies</div></div>
+    <div class="stat-box"><div class="value">${fmtEst(full.beta,isLog)}</div><div class="label">Pooled ${isLog?'OR/RR/HR':'SMD'}</div></div>
+    <div class="stat-box"><div class="value">${full.p<0.001?full.p.toExponential(2):full.p.toFixed(4)}</div><div class="label">P-value (${sigLabel})</div></div>
+    <div class="stat-box"><div class="value">${full.I2.toFixed(1)}%</div><div class="label">I²</div></div>
+  `;
+
+  document.getElementById('originalMA').innerHTML=`<p>Pooled estimate: <strong>${fmtEst(full.beta,isLog)}</strong> (95% CI: ${fmtEst(full.ci[0],isLog)} to ${fmtEst(full.ci[1],isLog)}), P = ${full.p<0.001?full.p.toExponential(2):full.p.toFixed(4)}, I² = ${full.I2.toFixed(1)}%, k = ${full.k}</p>`;
+
+  const worst=r.sortedByImpact[0];
+  document.getElementById('worstSingle').innerHTML=`<p>Removing <strong>"${worst.study}"</strong> changes the estimate by ${worst.change>=0?'+':''}${worst.change.toFixed(4)} (${worst.pctChange>=0?'+':''}${worst.pctChange.toFixed(1)}%), new estimate = ${fmtEst(worst.beta,isLog)}, new P = ${worst.p<0.001?worst.p.toExponential(2):worst.p.toFixed(4)} ${worst.reversal?'<span class="badge badge-red">REVERSAL</span>':''}</p>`;
+
+  const rfiText=rfi===null?'<span class="badge badge-green">∞ — The conclusion is robust to any combination of retractions tested.</span>':`<span class="badge ${rfiBadge}">RFI = ${rfi} — Removing ${rfi} study${rfi>1?'ies':''} reverses statistical significance.</span>`;
+  document.getElementById('rfiResult').innerHTML=`<p>${rfiText}</p>`;
+
+  document.querySelector('#looTable tbody').innerHTML=loo.map(l=>{
+    const changeColor=Math.abs(l.pctChange)>20?'color:var(--red)':'';
+    return`<tr><td>${l.study}</td><td>${fmtEst(l.beta,isLog)}</td><td style="${changeColor}">${l.change>=0?'+':''}${l.change.toFixed(4)}</td><td style="${changeColor}">${l.pctChange>=0?'+':''}${l.pctChange.toFixed(1)}%</td><td>${l.reversal?'<span class="badge badge-red">YES</span>':'<span class="badge badge-green">No</span>'}</td><td>${l.p<0.001?l.p.toExponential(2):l.p.toFixed(4)}</td></tr>`;
+  }).join('');
+}
+
+function renderWaterfall(){
+  const canvas=document.getElementById('waterfallCanvas');
+  const ctx=canvas.getContext('2d');
+  const r=lastResults;
+  const sorted=[...r.loo].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad={top:30,right:40,bottom:80,left:60};
+  const pw=W-pad.left-pad.right,ph=H-pad.top-pad.bottom;
+  const maxAbs=Math.max(...sorted.map(s=>Math.abs(s.change)))*1.2;
+  const barW=Math.min(40,pw/sorted.length-4);
+  const yScale=v=>pad.top+ph/2-((v/maxAbs)*(ph/2));
+
+  // Zero line
+  ctx.strokeStyle='#475569';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.left,yScale(0));ctx.lineTo(W-pad.right,yScale(0));ctx.stroke();
+
+  sorted.forEach((s,i)=>{
+    const x=pad.left+(pw/sorted.length)*i+(pw/sorted.length-barW)/2;
+    const h=Math.abs(s.change)/maxAbs*(ph/2);
+    const y0=yScale(0);
+    ctx.fillStyle=s.reversal?'#ef4444':s.change>0?'#f97316':'#06b6d4';
+    if(s.change>=0){ctx.fillRect(x,y0-h,barW,h)}
+    else{ctx.fillRect(x,y0,barW,h)}
+
+    // Label
+    ctx.save();ctx.translate(x+barW/2,H-pad.bottom+8);ctx.rotate(-Math.PI/3);
+    ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='left';
+    ctx.fillText(s.study,0,0);ctx.restore();
+
+    // Value
+    ctx.fillStyle='#e2e8f0';ctx.font='9px monospace';ctx.textAlign='center';
+    const vy=s.change>=0?y0-h-8:y0+h+12;
+    ctx.fillText((s.change>=0?'+':'')+s.change.toFixed(3),x+barW/2,vy);
+  });
+
+  ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Change in pooled estimate when study is retracted',pad.left+pw/2,pad.top-10);
+}
+
+function renderFragilityCurve(){
+  const canvas=document.getElementById('fragilityCanvas');
+  const ctx=canvas.getContext('2d');
+  const r=lastResults;
+  const curve=r.fragilityCurve;
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad={top:40,right:40,bottom:60,left:70};
+  const pw=W-pad.left-pad.right,ph=H-pad.top-pad.bottom;
+
+  const maxP=Math.min(1,Math.max(...curve.map(c=>c.p))*1.5);
+  const xScale=i=>pad.left+(i/(curve.length-1||1))*pw;
+  const yScale=v=>pad.top+ph-(v/maxP)*ph;
+
+  // Grid
+  ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;
+  for(let i=0;i<=5;i++){
+    const y=pad.top+(ph/5)*i;
+    ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+    ctx.fillStyle='#64748b';ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText((maxP*(1-i/5)).toFixed(3),pad.left-8,y+4);
+  }
+
+  // P=0.05 line
+  if(0.05<=maxP){
+    ctx.strokeStyle='#ef4444';ctx.lineWidth=1.5;ctx.setLineDash([6,3]);
+    ctx.beginPath();ctx.moveTo(pad.left,yScale(0.05));ctx.lineTo(W-pad.right,yScale(0.05));ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#ef4444';ctx.font='10px sans-serif';ctx.textAlign='left';
+    ctx.fillText('α = 0.05',W-pad.right+4,yScale(0.05)+4);
+  }
+
+  // Curve
+  ctx.strokeStyle='#f97316';ctx.lineWidth=2.5;
+  ctx.beginPath();
+  curve.forEach((c,i)=>{if(i===0)ctx.moveTo(xScale(i),yScale(c.p));else ctx.lineTo(xScale(i),yScale(c.p))});
+  ctx.stroke();
+
+  // Points
+  curve.forEach((c,i)=>{
+    ctx.beginPath();ctx.arc(xScale(i),yScale(c.p),5,0,Math.PI*2);
+    const crossedAlpha=(r.full.p<0.05&&c.p>=0.05)||(r.full.p>=0.05&&c.p<0.05);
+    ctx.fillStyle=crossedAlpha?'#ef4444':'#f97316';ctx.fill();
+    if(crossedAlpha){ctx.strokeStyle='#fca5a5';ctx.lineWidth=2;ctx.stroke()}
+  });
+
+  // X-axis labels
+  ctx.fillStyle='#64748b';ctx.font='10px sans-serif';ctx.textAlign='center';
+  curve.forEach((c,i)=>{
+    ctx.fillText(i===0?'All':'-'+c.removed.length,xScale(i),H-pad.bottom+15);
+    if(c.removed.length>0){
+      ctx.font='8px sans-serif';
+      ctx.fillText(c.removed[c.removed.length-1],xScale(i),H-pad.bottom+28);
+      ctx.font='10px sans-serif';
+    }
+  });
+
+  ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';
+  ctx.fillText('Studies removed (greedy, most impactful first)',pad.left+pw/2,H-8);
+  ctx.save();ctx.translate(14,pad.top+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('P-value',0,0);ctx.restore();
+}
+
+function renderLOOForest(){
+  const canvas=document.getElementById('looCanvas');
+  const r=lastResults;
+  const loo=r.loo;
+  const rows=loo.length+1;
+  canvas.height=Math.max(300,rows*26+80);
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad={top:40,right:120,bottom:40,left:200};
+  const pw=W-pad.left-pad.right;
+  const rowH=22;
+  const isLog=r.isLog;
+
+  const allEst=[...loo.flatMap(l=>l.ci),r.full.ci[0],r.full.ci[1]];
+  const eMin=Math.min(...allEst)*1.1;
+  const eMax=Math.max(...allEst)*1.1;
+  const xScale=v=>pad.left+((v-eMin)/(eMax-eMin))*pw;
+
+  // Null line
+  ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(xScale(0),pad.top);ctx.lineTo(xScale(0),H-pad.bottom);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Full estimate band
+  ctx.fillStyle='rgba(249,115,22,0.1)';
+  ctx.fillRect(xScale(r.full.ci[0]),pad.top,xScale(r.full.ci[1])-xScale(r.full.ci[0]),H-pad.top-pad.bottom);
+
+  loo.forEach((l,i)=>{
+    const y=pad.top+10+i*rowH;
+    const color=l.reversal?'#ef4444':'#fb923c';
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(xScale(l.ci[0]),y);ctx.lineTo(xScale(l.ci[1]),y);ctx.stroke();
+    ctx.beginPath();ctx.arc(xScale(l.beta),y,3.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText('Excl. '+l.study,pad.left-8,y+4);
+    ctx.fillStyle='#94a3b8';ctx.font='9px monospace';ctx.textAlign='left';
+    ctx.fillText(`${fmtEst(l.beta,isLog)} [${fmtEst(l.ci[0],isLog)}, ${fmtEst(l.ci[1],isLog)}]`,W-pad.right+5,y+4);
+  });
+
+  // Diamond
+  const divY=pad.top+10+loo.length*rowH+6;
+  ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(10,divY);ctx.lineTo(W-10,divY);ctx.stroke();
+  const y=divY+16;
+  const cx=xScale(r.full.beta),lx=xScale(r.full.ci[0]),rx=xScale(r.full.ci[1]);
+  ctx.beginPath();ctx.moveTo(lx,y);ctx.lineTo(cx,y-5);ctx.lineTo(rx,y);ctx.lineTo(cx,y+5);ctx.closePath();
+  ctx.fillStyle='#f97316';ctx.fill();
+  ctx.fillStyle='#f97316';ctx.font='bold 10px sans-serif';ctx.textAlign='right';
+  ctx.fillText('All studies',pad.left-8,y+4);
+}
+
+// ═══════════════════════════════════════════
+// EXAMPLES
+// ═══════════════════════════════════════════
+const EXAMPLES={
+  statin:{data:`4S\t-0.274\t0.066
+WOSCOPS\t-0.139\t0.080
+CARE\t-0.105\t0.072
+LIPID\t-0.198\t0.055
+AFCAPS\t-0.014\t0.162
+HPS\t-0.131\t0.027
+PROSPER\t-0.003\t0.063
+ALLHAT-LLT\t0.009\t0.049
+ASCOT-LLA\t-0.131\t0.090
+CARDS\t-0.229\t0.175
+JUPITER\t-0.198\t0.130`,type:'logHR'},
+  ivermectin:{data:`Study-A\t-0.693\t0.410
+Study-B\t-0.511\t0.350
+Study-C\t-0.357\t0.520
+Study-D\t-1.204\t0.620
+Study-E\t0.095\t0.480
+Study-F\t-0.223\t0.390
+Study-G\t-0.154\t0.550`,type:'logOR'},
+  surgery:{data:`STICH\t-0.080\t0.074
+BARI-2D\t-0.015\t0.098
+ISCHEMIA\t0.020\t0.065
+COURAGE\t0.039\t0.085
+FAME-2\t-0.125\t0.175
+ORBITA\t0.060\t0.155
+REVASCULARIZE\t-0.095\t0.120`,type:'logHR'}
+};
+
+function loadExample(k){
+  const e=EXAMPLES[k];
+  document.getElementById('dataInput').value=e.data;
+  document.getElementById('effectType').value=e.type;
+}
+
+function showTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+n).classList.add('active');document.querySelectorAll('.tab').forEach(t=>{const m=t.getAttribute('onclick')?.match(/showTab\('(\w+)'\)/);if(m&&m[1]===n)t.classList.add('active')})}
+function exportPlot(id,name){const c=document.getElementById(id);const a=document.createElement('a');a.download=name+'.png';a.href=c.toDataURL();a.click()}
+function exportCSV(){
+  if(!lastResults)return;const r=lastResults;
+  let csv='Study,Effect,SE,LOO_Pooled,Change,PctChange,Reversal,LOO_P\n';
+  r.loo.forEach(l=>{csv+=`${l.study},${r.data.find(d=>d.study===l.study).y},${r.data.find(d=>d.study===l.study).se},${l.beta},${l.change},${l.pctChange},${l.reversal},${l.p}\n`});
+  csv+=`\nRFI,${r.rfi||'Inf'}\nOriginal_P,${r.full.p}\nOriginal_Est,${r.full.beta}\n`;
+  const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='retraction_impact.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+</script>
+</body>
+</html>
