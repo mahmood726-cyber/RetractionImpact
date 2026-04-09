@@ -61,6 +61,7 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
   <div class="tab" onclick="showTab('waterfall')">Impact Waterfall</div>
   <div class="tab" onclick="showTab('fragility')">Fragility Curve</div>
   <div class="tab" onclick="showTab('loo')">Leave-One-Out</div>
+  <div class="tab" onclick="showTab('diagnostics')">Advanced Diagnostics</div>
   <div class="tab" onclick="showTab('guide')">Guide</div>
 </div>
 
@@ -133,6 +134,40 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
   </div>
 </div>
 
+<!-- ADVANCED DIAGNOSTICS -->
+<div class="panel" id="panel-diagnostics">
+  <div class="card">
+    <h3>Prediction Interval</h3>
+    <div id="predIntervalResult"></div>
+  </div>
+  <div class="card">
+    <h3>Influence Diagnostics Table</h3>
+    <div class="info-box">Cook's D &gt; 4/k, |DFBETAS| &gt; 2/&radic;k, |Studentized Residual| &gt; 2 flag influential/outlier studies. High leverage = disproportionate weight.</div>
+    <div style="overflow-x:auto">
+      <table id="influenceTable"><thead><tr><th>Study</th><th>Leverage (h<sub>i</sub>)</th><th>Stud. Resid (r<sub>i</sub>*)</th><th>Cook's D</th><th>DFBETAS</th><th>Flags</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Baujat Plot</h3>
+      <p style="color:var(--text2);font-size:0.85rem;margin-bottom:8px">X = contribution to Q (heterogeneity), Y = influence on pooled estimate. Upper-right = influential + heterogeneous.</p>
+      <div class="plot-container"><canvas id="baujatCanvas" width="460" height="400"></canvas></div>
+      <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportPlot('baujatCanvas','baujat_plot')">Export PNG</button></div>
+    </div>
+    <div class="card">
+      <h3>GOSH Density Plot</h3>
+      <p style="color:var(--text2);font-size:0.85rem;margin-bottom:8px">Distribution of pooled estimates across random study subsets. Bimodality suggests important subgroups.</p>
+      <div class="plot-container"><canvas id="goshCanvas" width="460" height="400"></canvas></div>
+      <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportPlot('goshCanvas','gosh_plot')">Export PNG</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Credibility Ceiling</h3>
+    <div class="info-box">The credibility ceiling (Ioannidis 2017) is the maximum bias probability <em>u</em> at which the pooled conclusion still holds. Higher ceiling = more robust to potential bias.</div>
+    <div id="credCeilingResult"></div>
+  </div>
+</div>
+
 <!-- GUIDE -->
 <div class="panel" id="panel-guide">
   <div class="card">
@@ -146,10 +181,21 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
     </table>
     <h3 style="margin-top:16px">How It Works</h3>
     <p style="color:var(--text2);margin-top:8px">1. Compute the full pooled estimate and its P-value.<br>2. For each subset of 1, 2, ..., d studies (up to max depth), re-pool without those studies.<br>3. The RFI is the smallest number of retractions that reverses significance (crosses P = 0.05).<br>4. The fragility curve shows P-value degradation as studies are greedily removed (most impactful first).</p>
+    <h3 style="margin-top:16px">Advanced Diagnostics</h3>
+    <table style="margin-top:8px">
+      <tr><td><strong>Cook's D</strong></td><td>D<sub>i</sub> = (&beta;<sub>full</sub> &minus; &beta;<sub>&minus;i</sub>)&sup2; / Var(&beta;). Threshold: 4/k. (Viechtbauer &amp; Cheung 2010, Res Synth Methods)</td></tr>
+      <tr><td><strong>DFBETAS</strong></td><td>(&beta;<sub>full</sub> &minus; &beta;<sub>&minus;i</sub>) / SE<sub>&minus;i</sub>. Threshold: |DFBETAS| &gt; 2/&radic;k. Standardized influence on the pooled estimate.</td></tr>
+      <tr><td><strong>Leverage (h<sub>i</sub>)</strong></td><td>w<sub>i</sub>* / &Sigma;w<sub>j</sub>* where w* = 1/(v<sub>i</sub> + &tau;&sup2;). High leverage = study dominates the pooled weight.</td></tr>
+      <tr><td><strong>Studentized Residual</strong></td><td>r<sub>i</sub>* = (y<sub>i</sub> &minus; &beta;) / &radic;((v<sub>i</sub> + &tau;&sup2;)(1 &minus; h<sub>i</sub>)). |r*| &gt; 2 suggests outlier.</td></tr>
+      <tr><td><strong>Baujat Plot</strong></td><td>X = study's contribution to Q, Y = influence on pooled estimate. Upper-right studies are both heterogeneous and influential. (Baujat et al. 2002, Stat Med)</td></tr>
+      <tr><td><strong>GOSH</strong></td><td>Graphical Overview of Study Heterogeneity. Pools all 2<sup>k</sup>&minus;1 subsets (capped at 1000 random subsets for k&gt;15). Bimodality suggests subgroups.</td></tr>
+      <tr><td><strong>Credibility Ceiling</strong></td><td>Max bias probability u where conclusion holds with inflated variance v<sub>i</sub> + u&sup2;&middot;&theta;<sub>i</sub>&sup2;. (Ioannidis 2017, J Clin Epidemiol)</td></tr>
+      <tr><td><strong>Prediction Interval</strong></td><td>&beta; &plusmn; t<sub>k&minus;2</sub> &middot; &radic;(SE&sup2; + &tau;&sup2;). Range of true effects expected in a new study setting.</td></tr>
+    </table>
   </div>
 </div>
 
-<footer>RetractionImpact v1.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
+<footer>RetractionImpact v2.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
 </div>
 
 <script>
@@ -158,6 +204,176 @@ function normalQuantile(p){if(p<=0)return-Infinity;if(p>=1)return Infinity;if(p=
 function chiSqP(x,df){if(x<=0)return 1;return 1-regGammaP(df/2,x/2)}
 function regGammaP(a,x){if(x<=0)return 0;const lga=lgamma(a);if(x<a+1){let s=1/a,t=1/a;for(let n=1;n<200;n++){t*=x/(a+n);s+=t;if(Math.abs(t)<1e-12*Math.abs(s))break}return s*Math.exp(-x+a*Math.log(x)-lga)}else{let f=1,b2=x+1-a,c2=1/1e-30,d2=1/b2;f=d2;for(let i=1;i<=200;i++){const an=-i*(i-a),bn=x+2*i+1-a;d2=bn+an*d2;if(Math.abs(d2)<1e-30)d2=1e-30;d2=1/d2;c2=bn+an/c2;if(Math.abs(c2)<1e-30)c2=1e-30;f*=d2*c2;if(Math.abs(d2*c2-1)<1e-10)break}return 1-f*Math.exp(-x+a*Math.log(x)-lga)}}
 function lgamma(x){const g=7,c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];if(x<0.5)return Math.log(Math.PI/Math.sin(Math.PI*x))-lgamma(1-x);x-=1;let a=c[0];const t=x+g+0.5;for(let i=1;i<g+2;i++)a+=c[i]/(x+i);return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a)}
+
+// t-distribution quantile via Hill's approximation (Abramowitz & Stegun refinement)
+function tQuantile(p, df) {
+  if (df <= 0) return NaN;
+  if (df === 1) return Math.tan(Math.PI * (p - 0.5)); // Cauchy
+  if (df === 2) return (2 * p - 1) / Math.sqrt(2 * p * (1 - p));
+  const z = normalQuantile(p);
+  if (df >= 1000) return z;
+  // Cornish-Fisher expansion for t from normal
+  const g1 = (z * z * z + z) / 4;
+  const g2 = (5 * z * z * z * z * z + 16 * z * z * z + 3 * z) / 96;
+  const g3 = (3 * z * z * z * z * z * z * z + 19 * z * z * z * z * z + 17 * z * z * z - 15 * z) / 384;
+  const g4 = (79 * Math.pow(z, 9) + 776 * Math.pow(z, 7) + 1482 * Math.pow(z, 5) - 1920 * z * z * z - 945 * z) / 92160;
+  return z + g1 / df + g2 / (df * df) + g3 / (df * df * df) + g4 / (df * df * df * df);
+}
+
+// Seeded PRNG: xoshiro128** for deterministic GOSH
+function xoshiro128ss(seed) {
+  let s = [seed >>> 0, (seed * 2654435761) >>> 0, (seed * 2246822519) >>> 0, (seed * 3266489917) >>> 0];
+  if (s[0] === 0 && s[1] === 0 && s[2] === 0 && s[3] === 0) s[0] = 1;
+  return function () {
+    const r = (((s[1] * 5) << 7 | (s[1] * 5) >>> 25) * 9) >>> 0;
+    const t = s[1] << 9;
+    s[2] ^= s[0]; s[3] ^= s[1]; s[1] ^= s[2]; s[0] ^= s[3];
+    s[2] ^= t; s[3] = (s[3] << 11 | s[3] >>> 21);
+    return r / 4294967296;
+  };
+}
+
+// Compute all advanced diagnostics
+function computeAdvancedDiagnostics(data, full, loo, method) {
+  const k = data.length;
+  const tau2 = full.tau2;
+
+  // Weights (RE)
+  const weights = data.map(d => 1 / (d.v + tau2));
+  const sumW = weights.reduce((a, b) => a + b, 0);
+
+  // Hat values (leverage): h_i = w_i / sum(w_j)
+  const hat = weights.map(w => w / sumW);
+
+  // Externally studentized residuals
+  // r_i* = (y_i - beta_full) / sqrt(v_i + tau2 - h_i * (v_i + tau2))
+  // = (y_i - beta_full) / sqrt((v_i + tau2) * (1 - h_i))
+  const studRes = data.map((d, i) => {
+    const denom = Math.sqrt((d.v + tau2) * (1 - hat[i]));
+    if (denom <= 0) return 0;
+    return (d.y - full.beta) / denom;
+  });
+
+  // Cook's distance (univariate)
+  // D_i = (beta_full - beta_{-i})^2 / var(beta_full)
+  const varBeta = full.se * full.se;
+  const cooksD = loo.map(l => {
+    const diff = full.beta - l.beta;
+    return (diff * diff) / varBeta;
+  });
+  const cookThreshold = 4 / k;
+
+  // DFBETAS: (beta_full - beta_{-i}) / se_{-i}
+  const dfbetas = loo.map(l => {
+    if (l.se <= 0) return 0;
+    return (full.beta - l.beta) / l.se;
+  });
+  const dfbetasThreshold = 2 / Math.sqrt(k);
+
+  // Baujat plot data
+  // X = contribution to Q: w_i * (y_i - beta_full)^2
+  // Y = influence: |beta_full - beta_{-i}|
+  const baujat = data.map((d, i) => ({
+    study: d.study,
+    qContrib: weights[i] * (d.y - full.beta) * (d.y - full.beta),
+    influence: Math.abs(full.beta - loo[i].beta)
+  }));
+
+  // Prediction interval: beta +/- t_{k-2} * sqrt(se^2 + tau^2)
+  let predInterval = null;
+  if (k >= 3) {
+    const tVal = tQuantile(0.975, k - 2);
+    const piSe = Math.sqrt(full.se * full.se + tau2);
+    predInterval = {
+      lo: full.beta - tVal * piSe,
+      hi: full.beta + tVal * piSe,
+      tVal: tVal,
+      piSe: piSe
+    };
+  }
+
+  // Credibility ceiling (Ioannidis 2017)
+  // Pool with inflated variance: v_i + u^2 * theta_i^2
+  // Find max u where conclusion holds
+  const credCeiling = computeCredibilityCeiling(data, full, method);
+
+  // GOSH: random subsets
+  const gosh = computeGOSH(data, method, k);
+
+  // Build per-study influence table
+  const influence = data.map((d, i) => ({
+    study: d.study,
+    hat: hat[i],
+    studRes: studRes[i],
+    cooksD: cooksD[i],
+    dfbetas: dfbetas[i],
+    flagCook: cooksD[i] > cookThreshold,
+    flagDFBETAS: Math.abs(dfbetas[i]) > dfbetasThreshold,
+    flagResid: Math.abs(studRes[i]) > 2,
+    flagLeverage: hat[i] > 2 / k // rule of thumb: 2*p/n, p=1 for univariate
+  }));
+
+  return { influence, baujat, predInterval, credCeiling, gosh, cookThreshold, dfbetasThreshold };
+}
+
+function computeCredibilityCeiling(data, full, method) {
+  const wasSignificant = full.p < 0.05;
+  // Binary search for max u where conclusion is preserved
+  let lo = 0, hi = 1, bestU = 0;
+  for (let iter = 0; iter < 100; iter++) {
+    const u = (lo + hi) / 2;
+    // Inflate variances: v_i + u^2 * y_i^2
+    const inflated = data.map(d => ({
+      study: d.study,
+      y: d.y,
+      se: Math.sqrt(d.v + u * u * d.y * d.y),
+      v: d.v + u * u * d.y * d.y
+    }));
+    const res = pool(inflated, method);
+    if (!res) break;
+    const nowSignificant = res.p < 0.05;
+    if (wasSignificant === nowSignificant) {
+      bestU = u;
+      lo = u;
+    } else {
+      hi = u;
+    }
+    if (hi - lo < 0.001) break;
+  }
+  return { ceiling: bestU, interpretation: bestU >= 0.5 ? 'High (robust)' : bestU >= 0.2 ? 'Moderate' : bestU >= 0.05 ? 'Low (fragile)' : 'Very low (extremely fragile)' };
+}
+
+function computeGOSH(data, method, k) {
+  const rng = xoshiro128ss(42);
+  const maxSubsets = k <= 15 ? Math.min(Math.pow(2, k) - 1, 1000) : 1000;
+  const estimates = [];
+
+  if (k <= 15 && Math.pow(2, k) - 1 <= 1000) {
+    // Enumerate all non-empty subsets of size >= 2
+    for (let mask = 3; mask < (1 << k); mask++) {
+      const sub = [];
+      for (let j = 0; j < k; j++) { if (mask & (1 << j)) sub.push(data[j]); }
+      if (sub.length < 2) continue;
+      const res = pool(sub, method);
+      if (res) estimates.push(res.beta);
+    }
+  } else {
+    // Random subsets of random size (2 to k-1)
+    for (let i = 0; i < maxSubsets; i++) {
+      const sz = 2 + Math.floor(rng() * (k - 2));
+      // Fisher-Yates partial shuffle
+      const indices = Array.from({ length: k }, (_, j) => j);
+      for (let j = 0; j < sz; j++) {
+        const r = j + Math.floor(rng() * (k - j));
+        [indices[j], indices[r]] = [indices[r], indices[j]];
+      }
+      const sub = indices.slice(0, sz).map(j => data[j]);
+      const res = pool(sub, method);
+      if (res) estimates.push(res.beta);
+    }
+  }
+  return estimates;
+}
 
 function parseData(){
   const raw=document.getElementById('dataInput').value.trim();
@@ -279,8 +495,12 @@ function runAnalysis(){
     }
   }
 
-  lastResults={data,full,loo,fragilityCurve,rfi,sortedByImpact,isLog,effectType,method};
+  // Compute advanced diagnostics
+  const advDiag = computeAdvancedDiagnostics(data, full, loo, method);
+
+  lastResults={data,full,loo,fragilityCurve,rfi,sortedByImpact,isLog,effectType,method,advDiag};
   renderResults();renderWaterfall();renderFragilityCurve();renderLOOForest();
+  renderAdvancedDiagnostics();
   showTab('results');
 }
 
@@ -478,6 +698,237 @@ function renderLOOForest(){
 }
 
 // ═══════════════════════════════════════════
+// ADVANCED DIAGNOSTICS RENDERING
+// ═══════════════════════════════════════════
+
+function renderAdvancedDiagnostics() {
+  const r = lastResults;
+  if (!r || !r.advDiag) return;
+  renderInfluenceTable();
+  renderPredInterval();
+  renderBaujatPlot();
+  renderGOSHPlot();
+  renderCredCeiling();
+}
+
+function renderPredInterval() {
+  const r = lastResults;
+  const pi = r.advDiag.predInterval;
+  const el = document.getElementById('predIntervalResult');
+  if (!pi) { el.innerHTML = '<p style="color:var(--text2)">Prediction interval requires k >= 3.</p>'; return; }
+  const isLog = r.isLog;
+  const fullDisp = fmtEst(r.full.beta, isLog);
+  const loDisp = fmtEst(pi.lo, isLog);
+  const hiDisp = fmtEst(pi.hi, isLog);
+  const containsNull = (isLog ? (pi.lo <= 0 && pi.hi >= 0) : (pi.lo <= 0 && pi.hi >= 0));
+  const nullLabel = isLog ? '1.000 (log=0)' : '0';
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${fullDisp}</div><div class="label">Pooled Estimate</div></div>
+      <div class="stat-box"><div class="value">${loDisp} to ${hiDisp}</div><div class="label">95% Prediction Interval</div></div>
+      <div class="stat-box"><div class="value">${containsNull ? '<span style="color:var(--amber)">Yes</span>' : '<span style="color:var(--green)">No</span>'}</div><div class="label">PI Includes Null (${nullLabel})?</div></div>
+      <div class="stat-box"><div class="value">${pi.tVal.toFixed(3)}</div><div class="label">t<sub>k-2</sub> = t<sub>${r.data.length - 2}</sub></div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">PI = ${r.full.beta.toFixed(4)} &plusmn; ${pi.tVal.toFixed(3)} &times; &radic;(${(r.full.se * r.full.se).toFixed(6)} + ${r.full.tau2.toFixed(6)}) = [${pi.lo.toFixed(4)}, ${pi.hi.toFixed(4)}]</p>
+    ${containsNull ? '<p style="color:var(--amber);font-size:0.85rem;margin-top:4px">The prediction interval contains the null, indicating substantial uncertainty about the true effect in a new study setting.</p>' : ''}
+  `;
+}
+
+function renderInfluenceTable() {
+  const r = lastResults;
+  const diag = r.advDiag;
+  const tbody = document.querySelector('#influenceTable tbody');
+  tbody.innerHTML = diag.influence.map(s => {
+    const flags = [];
+    if (s.flagCook) flags.push('<span class="badge badge-red">Cook</span>');
+    if (s.flagDFBETAS) flags.push('<span class="badge badge-red">DFBETAS</span>');
+    if (s.flagResid) flags.push('<span class="badge badge-amber">Outlier</span>');
+    if (s.flagLeverage) flags.push('<span class="badge badge-amber">Leverage</span>');
+    const rowStyle = flags.length > 0 ? 'style="background:rgba(239,68,68,0.06)"' : '';
+    return `<tr ${rowStyle}>
+      <td>${s.study}</td>
+      <td>${s.hat.toFixed(4)}</td>
+      <td style="${Math.abs(s.studRes) > 2 ? 'color:var(--red);font-weight:bold' : ''}">${s.studRes.toFixed(3)}</td>
+      <td style="${s.flagCook ? 'color:var(--red);font-weight:bold' : ''}">${s.cooksD.toFixed(4)}</td>
+      <td style="${s.flagDFBETAS ? 'color:var(--red);font-weight:bold' : ''}">${s.dfbetas.toFixed(4)}</td>
+      <td>${flags.length > 0 ? flags.join(' ') : '<span class="badge badge-green">OK</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBaujatPlot() {
+  const canvas = document.getElementById('baujatCanvas');
+  const ctx = canvas.getContext('2d');
+  const r = lastResults;
+  const bj = r.advDiag.baujat;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { top: 40, right: 30, bottom: 60, left: 70 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+  const maxQ = Math.max(...bj.map(b => b.qContrib)) * 1.2 || 1;
+  const maxInf = Math.max(...bj.map(b => b.influence)) * 1.2 || 1;
+
+  const xScale = v => pad.left + (v / maxQ) * pw;
+  const yScale = v => pad.top + ph - (v / maxInf) * ph;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ph / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText((maxInf * (1 - i / 4)).toExponential(1), pad.left - 6, y + 3);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const x = pad.left + (pw / 4) * i;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((maxQ * i / 4).toFixed(2), x, H - pad.bottom + 14);
+  }
+
+  // Quadrant median lines
+  const medQ = bj.reduce((a, b) => a + b.qContrib, 0) / bj.length;
+  const medInf = bj.reduce((a, b) => a + b.influence, 0) / bj.length;
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(xScale(medQ), pad.top); ctx.lineTo(xScale(medQ), H - pad.bottom); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.left, yScale(medInf)); ctx.lineTo(W - pad.right, yScale(medInf)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Points with labels
+  bj.forEach(b => {
+    const x = xScale(b.qContrib), y = yScale(b.influence);
+    const isUpperRight = b.qContrib > medQ && b.influence > medInf;
+    ctx.beginPath(); ctx.arc(x, y, isUpperRight ? 6 : 4, 0, Math.PI * 2);
+    ctx.fillStyle = isUpperRight ? '#ef4444' : '#f97316'; ctx.fill();
+    if (isUpperRight) { ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 1.5; ctx.stroke(); }
+
+    // Label
+    ctx.fillStyle = isUpperRight ? '#fca5a5' : '#94a3b8';
+    ctx.font = (isUpperRight ? 'bold ' : '') + '9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(b.study, x + 8, y + 3);
+  });
+
+  // Axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Contribution to overall Q (heterogeneity)', pad.left + pw / 2, H - 8);
+  ctx.save(); ctx.translate(14, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Influence on pooled estimate', 0, 0); ctx.restore();
+  ctx.fillText('Baujat Plot', pad.left + pw / 2, pad.top - 14);
+}
+
+function renderGOSHPlot() {
+  const canvas = document.getElementById('goshCanvas');
+  const ctx = canvas.getContext('2d');
+  const r = lastResults;
+  const estimates = r.advDiag.gosh;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (estimates.length < 2) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Insufficient subsets for GOSH', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 40, right: 30, bottom: 60, left: 60 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+  // Kernel density estimation (Gaussian kernel)
+  const sorted = [...estimates].sort((a, b) => a - b);
+  const n = sorted.length;
+  const q1 = sorted[Math.floor(n * 0.25)], q3 = sorted[Math.floor(n * 0.75)];
+  const iqr = q3 - q1;
+  const sd = Math.sqrt(estimates.reduce((s, e) => s + (e - estimates.reduce((a, b) => a + b, 0) / n) ** 2, 0) / (n - 1));
+  // Silverman's rule of thumb
+  const bw = 0.9 * Math.min(sd, iqr / 1.34) * Math.pow(n, -0.2) || 0.01;
+
+  const xMin = sorted[0] - 3 * bw;
+  const xMax = sorted[n - 1] + 3 * bw;
+  const nBins = 200;
+  const step = (xMax - xMin) / nBins;
+  const density = [];
+  let maxDens = 0;
+  for (let i = 0; i <= nBins; i++) {
+    const x = xMin + i * step;
+    let d = 0;
+    for (const e of estimates) {
+      const u = (x - e) / bw;
+      d += Math.exp(-0.5 * u * u) / (bw * Math.sqrt(2 * Math.PI));
+    }
+    d /= n;
+    density.push({ x, d });
+    if (d > maxDens) maxDens = d;
+  }
+
+  const xScale = v => pad.left + ((v - xMin) / (xMax - xMin)) * pw;
+  const yScale = v => pad.top + ph - (v / (maxDens * 1.1)) * ph;
+
+  // Fill density
+  ctx.beginPath();
+  ctx.moveTo(xScale(density[0].x), yScale(0));
+  for (const pt of density) ctx.lineTo(xScale(pt.x), yScale(pt.d));
+  ctx.lineTo(xScale(density[density.length - 1].x), yScale(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(249,115,22,0.2)'; ctx.fill();
+
+  // Density line
+  ctx.beginPath();
+  density.forEach((pt, i) => { if (i === 0) ctx.moveTo(xScale(pt.x), yScale(pt.d)); else ctx.lineTo(xScale(pt.x), yScale(pt.d)); });
+  ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Full estimate line
+  ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]);
+  ctx.beginPath(); ctx.moveTo(xScale(r.full.beta), pad.top); ctx.lineTo(xScale(r.full.beta), pad.top + ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#22c55e'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Full MA', xScale(r.full.beta) + 4, pad.top + 14);
+
+  // Null line if in range
+  if (xMin <= 0 && xMax >= 0) {
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xScale(0), pad.top); ctx.lineTo(xScale(0), pad.top + ph); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ef4444'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('Null', xScale(0) - 4, pad.top + 14);
+  }
+
+  // X axis ticks
+  ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  const nTicks = 6;
+  for (let i = 0; i <= nTicks; i++) {
+    const x = xMin + (xMax - xMin) * i / nTicks;
+    ctx.fillText(r.isLog ? Math.exp(x).toFixed(2) : x.toFixed(3), xScale(x), H - pad.bottom + 14);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`GOSH: Pooled estimate distribution (${estimates.length} subsets)`, pad.left + pw / 2, pad.top - 14);
+  ctx.fillText('Pooled estimate', pad.left + pw / 2, H - 8);
+  ctx.save(); ctx.translate(14, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Density', 0, 0); ctx.restore();
+}
+
+function renderCredCeiling() {
+  const r = lastResults;
+  const cc = r.advDiag.credCeiling;
+  const el = document.getElementById('credCeilingResult');
+  const pctStr = (cc.ceiling * 100).toFixed(1);
+  const color = cc.ceiling >= 0.5 ? 'var(--green)' : cc.ceiling >= 0.2 ? 'var(--amber)' : 'var(--red)';
+  const wasSignificant = r.full.p < 0.05 ? 'significant' : 'non-significant';
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value" style="color:${color}">${pctStr}%</div><div class="label">Credibility Ceiling (u)</div></div>
+      <div class="stat-box"><div class="value">${cc.interpretation}</div><div class="label">Interpretation</div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">The pooled result remains ${wasSignificant} even if each study has up to ${pctStr}% probability of producing a biased result (Ioannidis 2017, J Clin Epidemiol).</p>
+    ${cc.ceiling < 0.2 ? '<p style="color:var(--red);font-size:0.85rem;margin-top:4px">Low credibility ceiling: the conclusion is sensitive to even modest levels of bias.</p>' : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════
 // EXAMPLES
 // ═══════════════════════════════════════════
 const EXAMPLES={
@@ -518,9 +969,42 @@ function showTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.rem
 function exportPlot(id,name){const c=document.getElementById(id);const a=document.createElement('a');a.download=name+'.png';a.href=c.toDataURL();a.click()}
 function exportCSV(){
   if(!lastResults)return;const r=lastResults;
-  let csv='Study,Effect,SE,LOO_Pooled,Change,PctChange,Reversal,LOO_P\n';
-  r.loo.forEach(l=>{csv+=`${l.study},${r.data.find(d=>d.study===l.study).y},${r.data.find(d=>d.study===l.study).se},${l.beta},${l.change},${l.pctChange},${l.reversal},${l.p}\n`});
+  let csv='Study,Effect,SE,LOO_Pooled,Change,PctChange,Reversal,LOO_P';
+  if(r.advDiag){csv+=',Leverage,StudResid,CooksD,DFBETAS,Flags'}
+  csv+='\n';
+  r.loo.forEach((l,i)=>{
+    const d=r.data.find(dd=>dd.study===l.study);
+    csv+=`${l.study},${d.y},${d.se},${l.beta},${l.change},${l.pctChange},${l.reversal},${l.p}`;
+    if(r.advDiag){
+      const inf=r.advDiag.influence[i];
+      const flags=[];
+      if(inf.flagCook)flags.push('Cook');
+      if(inf.flagDFBETAS)flags.push('DFBETAS');
+      if(inf.flagResid)flags.push('Outlier');
+      if(inf.flagLeverage)flags.push('Leverage');
+      csv+=`,${inf.hat},${inf.studRes},${inf.cooksD},${inf.dfbetas},"${flags.join(';')||'OK'}"`;
+    }
+    csv+='\n';
+  });
   csv+=`\nRFI,${r.rfi||'Inf'}\nOriginal_P,${r.full.p}\nOriginal_Est,${r.full.beta}\n`;
+  if(r.advDiag){
+    csv+=`\nAdvanced Diagnostics\n`;
+    csv+=`Cook_D_Threshold,${r.advDiag.cookThreshold}\n`;
+    csv+=`DFBETAS_Threshold,${r.advDiag.dfbetasThreshold}\n`;
+    if(r.advDiag.predInterval){
+      csv+=`Prediction_Interval_Lo,${r.advDiag.predInterval.lo}\n`;
+      csv+=`Prediction_Interval_Hi,${r.advDiag.predInterval.hi}\n`;
+    }
+    csv+=`Credibility_Ceiling,${r.advDiag.credCeiling.ceiling}\n`;
+    csv+=`Credibility_Interpretation,"${r.advDiag.credCeiling.interpretation}"\n`;
+    csv+=`\nGOSH_Estimates\n`;
+    const gosh=r.advDiag.gosh;
+    if(gosh.length>0){
+      const mean=gosh.reduce((a,b)=>a+b,0)/gosh.length;
+      const sd=Math.sqrt(gosh.reduce((s,e)=>s+(e-mean)**2,0)/(gosh.length-1));
+      csv+=`GOSH_N_Subsets,${gosh.length}\nGOSH_Mean,${mean}\nGOSH_SD,${sd}\nGOSH_Min,${Math.min(...gosh)}\nGOSH_Max,${Math.max(...gosh)}\n`;
+    }
+  }
   const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='retraction_impact.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
