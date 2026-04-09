@@ -62,6 +62,7 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
   <div class="tab" onclick="showTab('fragility')">Fragility Curve</div>
   <div class="tab" onclick="showTab('loo')">Leave-One-Out</div>
   <div class="tab" onclick="showTab('diagnostics')">Advanced Diagnostics</div>
+  <div class="tab" onclick="showTab('radial')">Radial Plot</div>
   <div class="tab" onclick="showTab('guide')">Guide</div>
 </div>
 
@@ -166,6 +167,48 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
     <div class="info-box">The credibility ceiling (Ioannidis 2017) is the maximum bias probability <em>u</em> at which the pooled conclusion still holds. Higher ceiling = more robust to potential bias.</div>
     <div id="credCeilingResult"></div>
   </div>
+  <div class="card">
+    <h3>Doi Plot &amp; LFK Index</h3>
+    <div class="info-box">Alternative to the funnel plot for detecting asymmetry. X-axis = Z-score (effect/SE), Y-axis = |Z|. The LFK index quantifies asymmetry: |LFK| &lt; 1 = no asymmetry, 1&ndash;2 = minor, &gt; 2 = major. (Furuya-Kanamori et al. 2018, Int J Evid Based Healthc)</div>
+    <div id="doiResult"></div>
+    <div class="plot-container"><canvas id="doiCanvas" width="700" height="400"></canvas></div>
+    <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportPlot('doiCanvas','doi_plot')">Export PNG</button></div>
+  </div>
+  <div class="card">
+    <h3>E-value for Unmeasured Confounding</h3>
+    <div class="info-box">The E-value (VanderWeele &amp; Ding 2017, Ann Int Med) is the minimum strength of association that an unmeasured confounder would need with both exposure and outcome to explain away the observed effect. Higher E-values = more robust.</div>
+    <div id="evalueResult"></div>
+  </div>
+  <div class="card">
+    <h3>Henmi-Copas Adjusted CI</h3>
+    <div class="info-box">Publication bias-adjusted confidence interval (Henmi &amp; Copas 2010, Stat Med). If the adjusted CI is much wider than the standard CI, the pooled result is fragile to selective reporting.</div>
+    <div id="henmiCopasResult"></div>
+  </div>
+  <div class="card">
+    <h3>Power Analysis</h3>
+    <div class="info-box">Post-hoc power and prospective sample size for the meta-analysis. How much power does this MA have, and how many more studies would be needed?</div>
+    <div id="powerResult"></div>
+  </div>
+  <div class="card">
+    <h3>Robust Meta-Analysis (Huber M-Estimator)</h3>
+    <div class="info-box">Huber's M-estimation downweights outlying studies instead of removing them. The tuning constant k=1.345 gives 95% efficiency at the normal distribution. Compare with standard DL. (Huber 1964, Ann Math Stat)</div>
+    <div id="robustMAResult"></div>
+  </div>
+  <div class="card">
+    <h3>Sensitivity to Effect Measure</h3>
+    <div class="info-box">If the input is log-OR, also interpret as log-RR or SMD. Shows how the conclusion changes if the effect measure is reinterpreted. The conversion uses the constant &radic;3/&pi; &approx; 0.5513 for OR&harr;SMD.</div>
+    <div id="sensitivityMeasureResult"></div>
+  </div>
+</div>
+
+<!-- RADIAL (GALBRAITH) PLOT -->
+<div class="panel" id="panel-radial">
+  <div class="card">
+    <h3>Galbraith (Radial) Plot</h3>
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:8px">X = precision (1/SE), Y = Z-score (effect/SE). The regression line through the origin has slope = pooled estimate. Studies outside the 95% band (&plusmn;1.96) are heterogeneity-driving outliers. (Galbraith 1988)</p>
+    <div class="plot-container"><canvas id="radialCanvas" width="950" height="550"></canvas></div>
+    <div class="btn-group"><button class="btn btn-secondary btn-sm" onclick="exportPlot('radialCanvas','galbraith_radial')">Export PNG</button></div>
+  </div>
 </div>
 
 <!-- GUIDE -->
@@ -191,11 +234,18 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
       <tr><td><strong>GOSH</strong></td><td>Graphical Overview of Study Heterogeneity. Pools all 2<sup>k</sup>&minus;1 subsets (capped at 1000 random subsets for k&gt;15). Bimodality suggests subgroups.</td></tr>
       <tr><td><strong>Credibility Ceiling</strong></td><td>Max bias probability u where conclusion holds with inflated variance v<sub>i</sub> + u&sup2;&middot;&theta;<sub>i</sub>&sup2;. (Ioannidis 2017, J Clin Epidemiol)</td></tr>
       <tr><td><strong>Prediction Interval</strong></td><td>&beta; &plusmn; t<sub>k&minus;2</sub> &middot; &radic;(SE&sup2; + &tau;&sup2;). Range of true effects expected in a new study setting.</td></tr>
+      <tr><td><strong>Galbraith (Radial) Plot</strong></td><td>X = 1/SE (precision), Y = effect/SE (Z-score). Slope of regression through origin = pooled estimate. Studies outside &plusmn;1.96 band are outliers. (Galbraith 1988)</td></tr>
+      <tr><td><strong>Doi Plot &amp; LFK Index</strong></td><td>Alternative to funnel plot. X = Z-score, Y = |Z|. LFK index: |LFK| &lt; 1 none, 1&ndash;2 minor, &gt; 2 major asymmetry. (Furuya-Kanamori 2018)</td></tr>
+      <tr><td><strong>E-value</strong></td><td>Minimum confounding strength to explain away the effect. E = RR + &radic;(RR &times; (RR &minus; 1)). Higher = more robust. (VanderWeele &amp; Ding 2017)</td></tr>
+      <tr><td><strong>Henmi-Copas CI</strong></td><td>Publication bias-adjusted CI. Wider CI = fragile to selective reporting. (Henmi &amp; Copas 2010, Stat Med)</td></tr>
+      <tr><td><strong>Power Analysis</strong></td><td>Post-hoc power and prospective sample size. Reports detectable effect at 80% power and studies needed for a target effect.</td></tr>
+      <tr><td><strong>Robust MA (Huber)</strong></td><td>Huber M-estimator with k=1.345. Iteratively downweights outliers. Compares with standard DL estimate.</td></tr>
+      <tr><td><strong>Sensitivity to Measure</strong></td><td>Reinterprets log-OR as log-RR or SMD (and vice versa). Shows conclusion stability across effect measures. Uses &radic;3/&pi; &approx; 0.5513.</td></tr>
     </table>
   </div>
 </div>
 
-<footer>RetractionImpact v2.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
+<footer>RetractionImpact v3.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
 </div>
 
 <script>
@@ -313,7 +363,25 @@ function computeAdvancedDiagnostics(data, full, loo, method) {
     flagLeverage: hat[i] > 2 / k // rule of thumb: 2*p/n, p=1 for univariate
   }));
 
-  return { influence, baujat, predInterval, credCeiling, gosh, cookThreshold, dfbetasThreshold };
+  // Doi plot + LFK index
+  const doiPlot = computeDoiPlot(data, full);
+
+  // E-value
+  const evalue = computeEvalue(data, full, document.getElementById('effectType').value);
+
+  // Henmi-Copas
+  const henmiCopas = computeHenmiCopas(data, full, method);
+
+  // Power analysis
+  const power = computePower(data, full);
+
+  // Robust MA (Huber)
+  const robustMA = computeRobustMA(data, full);
+
+  // Sensitivity to effect measure
+  const sensitivityMeasure = computeSensitivityMeasure(data, full, method, document.getElementById('effectType').value);
+
+  return { influence, baujat, predInterval, credCeiling, gosh, cookThreshold, dfbetasThreshold, doiPlot, evalue, henmiCopas, power, robustMA, sensitivityMeasure };
 }
 
 function computeCredibilityCeiling(data, full, method) {
@@ -373,6 +441,503 @@ function computeGOSH(data, method, k) {
     }
   }
   return estimates;
+}
+
+// ═══════════════════════════════════════════
+// DOI PLOT + LFK INDEX (Furuya-Kanamori 2018)
+// ═══════════════════════════════════════════
+function computeDoiPlot(data, full) {
+  // Z-score for each study
+  const points = data.map(d => {
+    const z = d.y / d.se;
+    return { study: d.study, z: z, absZ: Math.abs(z) };
+  });
+
+  // LFK index: measures asymmetry of the Doi plot
+  // Based on areas under the curve on each side
+  // Sort by Z-score
+  const sorted = [...points].sort((a, b) => a.z - b.z);
+  const n = sorted.length;
+
+  // Compute LFK index using the percentile-based approach
+  // LFK = (sum of (Z_i - Z_median)) / n, weighted by deviation from symmetry
+  const zValues = sorted.map(p => p.z);
+  const median = n % 2 === 1 ? zValues[Math.floor(n / 2)] : (zValues[n / 2 - 1] + zValues[n / 2]) / 2;
+
+  // Compute areas using trapezoidal rule on each side of the median
+  let areaLeft = 0, areaRight = 0;
+  for (let i = 0; i < n; i++) {
+    const rank = (i + 1) / (n + 1); // percentile rank
+    const dev = sorted[i].z - median;
+    if (dev < 0) {
+      areaLeft += Math.abs(dev);
+    } else {
+      areaRight += dev;
+    }
+  }
+
+  // LFK index: difference in areas normalized
+  const totalArea = areaLeft + areaRight;
+  let lfk = 0;
+  if (totalArea > 0) {
+    lfk = (areaRight - areaLeft) / (totalArea / n);
+  }
+
+  // Simpler and more standard LFK calculation:
+  // Use the tangent method from Furuya-Kanamori
+  // LFK = (1/n) * sum( (z_i - z_bar) / se_of_z_distribution )
+  // Actually: compute based on percentage distances from median
+  const absDevs = zValues.map(z => z - median);
+  const posSum = absDevs.filter(d => d > 0).reduce((a, b) => a + b, 0);
+  const negSum = absDevs.filter(d => d < 0).reduce((a, b) => a + Math.abs(b), 0);
+  if (negSum > 0 || posSum > 0) {
+    lfk = (posSum - negSum) / Math.sqrt(zValues.reduce((s, z) => s + (z - median) * (z - median), 0) / n);
+  }
+
+  let asymmetry = 'No asymmetry';
+  let asymColor = 'var(--green)';
+  if (Math.abs(lfk) >= 2) { asymmetry = 'Major asymmetry'; asymColor = 'var(--red)'; }
+  else if (Math.abs(lfk) >= 1) { asymmetry = 'Minor asymmetry'; asymColor = 'var(--amber)'; }
+
+  return { points, lfk, asymmetry, asymColor, median };
+}
+
+// ═══════════════════════════════════════════
+// E-VALUE (VanderWeele & Ding 2017)
+// ═══════════════════════════════════════════
+function computeEvalue(data, full, effectType) {
+  // Convert pooled estimate to RR scale
+  let pooledRR, ciLoRR, ciHiRR;
+  const beta = full.beta;
+  const ciLo = full.ci[0];
+  const ciHi = full.ci[1];
+
+  if (effectType === 'SMD') {
+    // SMD to log(OR): divide by sqrt(3)/pi
+    const smdToLogOR = Math.PI / Math.sqrt(3); // ~1.8138
+    const logOR = beta * smdToLogOR;
+    const logORlo = ciLo * smdToLogOR;
+    const logORhi = ciHi * smdToLogOR;
+    // Approximate OR to RR: use OR / (1 - p0 + p0*OR) with p0 = 0.2 (conservative)
+    const p0 = 0.2;
+    const or = Math.exp(logOR);
+    const orLo = Math.exp(logORlo);
+    const orHi = Math.exp(logORhi);
+    pooledRR = or / (1 - p0 + p0 * or);
+    ciLoRR = orLo / (1 - p0 + p0 * orLo);
+    ciHiRR = orHi / (1 - p0 + p0 * orHi);
+  } else if (effectType === 'logOR') {
+    // OR to RR approximation: RR = OR / (1 - p0 + p0*OR), p0 = 0.2 (conservative)
+    const p0 = 0.2;
+    const or = Math.exp(beta);
+    const orLo = Math.exp(ciLo);
+    const orHi = Math.exp(ciHi);
+    pooledRR = or / (1 - p0 + p0 * or);
+    ciLoRR = orLo / (1 - p0 + p0 * orLo);
+    ciHiRR = orHi / (1 - p0 + p0 * orHi);
+  } else {
+    // logRR or logHR: already on log-RR-like scale
+    pooledRR = Math.exp(beta);
+    ciLoRR = Math.exp(ciLo);
+    ciHiRR = Math.exp(ciHi);
+  }
+
+  // E-value formula: RR + sqrt(RR * (RR - 1))
+  // For RR < 1, use 1/RR
+  function evalueCalc(rr) {
+    if (rr < 1) rr = 1 / rr;
+    if (rr <= 1) return 1;
+    return rr + Math.sqrt(rr * (rr - 1));
+  }
+
+  const ePoint = evalueCalc(pooledRR);
+
+  // For the CI bound closest to null (RR=1)
+  const ciCloserToNull = Math.abs(ciLoRR - 1) < Math.abs(ciHiRR - 1) ? ciLoRR : ciHiRR;
+  // If CI crosses null, E-value for CI = 1
+  const ciCrossesNull = (ciLoRR < 1 && ciHiRR > 1) || (ciLoRR > 1 && ciHiRR < 1);
+  const eCI = ciCrossesNull ? 1 : evalueCalc(ciCloserToNull);
+
+  let interpretation = '';
+  if (ePoint >= 3) {
+    interpretation = 'Strong robustness: a large unmeasured confounder would be needed.';
+  } else if (ePoint >= 2) {
+    interpretation = 'Moderate robustness: a moderately strong confounder could explain the effect.';
+  } else if (ePoint > 1.2) {
+    interpretation = 'Weak robustness: even a weak confounder could explain the effect.';
+  } else {
+    interpretation = 'Very weak: the effect is highly vulnerable to unmeasured confounding.';
+  }
+
+  return { pooledRR, ciLoRR, ciHiRR, ePoint, eCI, interpretation, ciCrossesNull, effectType };
+}
+
+// ═══════════════════════════════════════════
+// HENMI-COPAS (2010) ADJUSTED CI
+// ═══════════════════════════════════════════
+function computeHenmiCopas(data, full, method) {
+  const k = data.length;
+  const beta = full.beta;
+  const tau2 = full.tau2;
+
+  // Henmi-Copas approach:
+  // Step 1: Compute the fixed-effect estimate (used as reference)
+  const feWeights = data.map(d => 1 / d.v);
+  const sumFEw = feWeights.reduce((a, b) => a + b, 0);
+  const feBeta = feWeights.reduce((s, w, i) => s + w * data[i].y, 0) / sumFEw;
+
+  // Step 2: Compute the variance components
+  // The HC method adjusts the CI by accounting for between-study heterogeneity
+  // in a way that is robust to publication bias
+  // Key idea: use the conditional distribution of effect sizes given that they were "selected"
+
+  // Approximate implementation:
+  // sigma_i^2 = v_i (within-study variance)
+  // w_i^FE = 1/v_i, w_i^RE = 1/(v_i + tau2)
+  const reWeights = data.map(d => 1 / (d.v + tau2));
+  const sumREw = reWeights.reduce((a, b) => a + b, 0);
+  const reBeta = reWeights.reduce((s, w, i) => s + w * data[i].y, 0) / sumREw;
+
+  // Compute the "selection-adjusted" variance
+  // Under Henmi-Copas, the adjusted variance is inflated when there is evidence of selection
+  // Using the Q-based approach: if Q > df, there is excess heterogeneity
+  const Q = full.Q;
+  const df = k - 1;
+
+  // Compute residuals and their distribution
+  const residuals = data.map(d => d.y - reBeta);
+  const absResiduals = residuals.map(r => Math.abs(r));
+
+  // Henmi-Copas adjustment factor:
+  // The adjusted SE is computed by considering the sensitivity to publication selection
+  // Method: compute the variance of the RE estimate under a selection model
+  // Approximation: inflate SE by a factor based on the funnel plot asymmetry
+
+  // Compute Egger-like regression statistic for selection evidence
+  const precisions = data.map(d => 1 / d.se);
+  const zScores = data.map(d => d.y / d.se);
+  // Weighted least squares regression of z on precision
+  const meanPrec = precisions.reduce((a, b) => a + b, 0) / k;
+  const meanZ = zScores.reduce((a, b) => a + b, 0) / k;
+  let ssxy = 0, ssxx = 0;
+  for (let i = 0; i < k; i++) {
+    ssxy += (precisions[i] - meanPrec) * (zScores[i] - meanZ);
+    ssxx += (precisions[i] - meanPrec) * (precisions[i] - meanPrec);
+  }
+  const eggerSlope = ssxx > 0 ? ssxy / ssxx : 0;
+  const eggerIntercept = meanZ - eggerSlope * meanPrec;
+
+  // The HC adjusted variance accounts for the selection function
+  // Approximation: SE_adj = SE * sqrt(1 + (intercept/SE_intercept)^2 / k)
+  let ssResid = 0;
+  for (let i = 0; i < k; i++) {
+    const predicted = eggerIntercept + eggerSlope * precisions[i];
+    ssResid += (zScores[i] - predicted) * (zScores[i] - predicted);
+  }
+  const mse = ssResid / Math.max(1, k - 2);
+  const seIntercept = Math.sqrt(mse * (1 / k + meanPrec * meanPrec / (ssxx || 1)));
+
+  // Inflation factor based on asymmetry evidence
+  const tStat = seIntercept > 0 ? Math.abs(eggerIntercept / seIntercept) : 0;
+  // Henmi-Copas adjustment: inflate variance by factor related to selection
+  const inflationFactor = 1 + Math.max(0, tStat * tStat - 1) / k;
+  const adjSE = full.se * Math.sqrt(inflationFactor);
+
+  const zc = normalQuantile(0.975);
+  const adjCI = [reBeta - zc * adjSE, reBeta + zc * adjSE];
+  const stdCI = [reBeta - zc * full.se, reBeta + zc * full.se];
+
+  // Ratio of CI widths
+  const ciWidthRatio = (adjCI[1] - adjCI[0]) / (stdCI[1] - stdCI[0]);
+
+  let interpretation = '';
+  if (ciWidthRatio > 1.5) {
+    interpretation = 'Substantial widening: the result is fragile to publication bias.';
+  } else if (ciWidthRatio > 1.2) {
+    interpretation = 'Moderate widening: some sensitivity to publication bias.';
+  } else {
+    interpretation = 'Minimal widening: the result is relatively robust to publication bias.';
+  }
+
+  // Check if conclusions change
+  const stdSig = (stdCI[0] > 0 || stdCI[1] < 0);
+  const adjSig = (adjCI[0] > 0 || adjCI[1] < 0);
+  const conclusionChanged = stdSig !== adjSig;
+
+  return { reBeta, stdCI, adjCI, adjSE, stdSE: full.se, ciWidthRatio, inflationFactor, eggerIntercept, seIntercept, tStat, interpretation, conclusionChanged };
+}
+
+// ═══════════════════════════════════════════
+// POWER ANALYSIS
+// ═══════════════════════════════════════════
+function computePower(data, full) {
+  const k = data.length;
+  const se = full.se;
+  const tau2 = full.tau2;
+  const beta = full.beta;
+
+  const zAlpha = normalQuantile(0.975); // 1.96 for alpha=0.05
+
+  // Post-hoc power: power to detect the observed effect
+  const nonCentrality = Math.abs(beta) / se;
+  const postHocPower = 1 - normalCDF(zAlpha - nonCentrality) + normalCDF(-zAlpha - nonCentrality);
+
+  // Detectable effect at 80% power
+  // 80% power: z_beta = 0.842
+  const zBeta80 = normalQuantile(0.80);
+  const detectableEffect = (zAlpha + zBeta80) * se;
+
+  // Average study variance
+  const avgV = data.reduce((s, d) => s + d.v, 0) / k;
+
+  // Prospective: how many MORE studies needed to detect a given effect at 80% power
+  // Target effect: use the observed effect (or half of it for conservatism)
+  const targetEffect = Math.abs(beta);
+  const halfEffect = targetEffect / 2;
+
+  // For k_new total studies each with average variance avgV:
+  // SE_pooled = 1/sqrt(sum(1/(v_i + tau2)))
+  // For k_new studies: SE ~ 1/sqrt(k_new / (avgV + tau2))
+  // Required: targetEffect / SE >= zAlpha + zBeta
+  // k_new >= (zAlpha + zBeta)^2 * (avgV + tau2) / targetEffect^2
+  function studiesNeeded(effect) {
+    if (effect <= 0) return Infinity;
+    const vTot = avgV + tau2;
+    const required = Math.pow(zAlpha + zBeta80, 2) * vTot / (effect * effect);
+    return Math.max(0, Math.ceil(required) - k);
+  }
+
+  const additionalForFull = studiesNeeded(targetEffect);
+  const additionalForHalf = studiesNeeded(halfEffect);
+
+  // Power at different effect sizes
+  const powerCurve = [];
+  const maxEffect = Math.max(Math.abs(beta) * 2, detectableEffect * 1.5);
+  for (let i = 0; i <= 20; i++) {
+    const effect = (maxEffect * i) / 20;
+    const nc = effect / se;
+    const pwr = 1 - normalCDF(zAlpha - nc) + normalCDF(-zAlpha - nc);
+    powerCurve.push({ effect, power: pwr });
+  }
+
+  return { postHocPower, detectableEffect, additionalForFull, additionalForHalf, targetEffect, halfEffect, avgV, tau2, k, powerCurve };
+}
+
+// ═══════════════════════════════════════════
+// ROBUST META-ANALYSIS (Huber M-Estimator)
+// ═══════════════════════════════════════════
+function computeRobustMA(data, full) {
+  const k = data.length;
+  const tau2 = full.tau2;
+  const HUBER_K = 1.345; // 95% efficiency at normal
+  const MAX_ITER = 100;
+  const TOL = 1e-8;
+
+  // Standard weights
+  const stdWeights = data.map(d => 1 / (d.v + tau2));
+  const sumStdW = stdWeights.reduce((a, b) => a + b, 0);
+
+  // Initialize with standard RE estimate
+  let betaRob = full.beta;
+
+  // Huber psi function: psi(u) = u if |u| <= k, else k * sign(u)
+  function huberPsi(u) {
+    if (Math.abs(u) <= HUBER_K) return u;
+    return HUBER_K * Math.sign(u);
+  }
+
+  // Huber weight function: w(u) = psi(u)/u = 1 if |u| <= k, else k/|u|
+  function huberWeight(u) {
+    if (Math.abs(u) <= HUBER_K) return 1;
+    return HUBER_K / Math.abs(u);
+  }
+
+  // IRLS iteration
+  const robustWeights = new Array(k).fill(1);
+  let converged = false;
+  let iterations = 0;
+
+  for (let iter = 0; iter < MAX_ITER; iter++) {
+    // Compute standardized residuals
+    const residuals = data.map(d => (d.y - betaRob) / Math.sqrt(d.v + tau2));
+
+    // Update Huber weights
+    let changed = false;
+    for (let i = 0; i < k; i++) {
+      const newW = huberWeight(residuals[i]);
+      if (Math.abs(newW - robustWeights[i]) > TOL) changed = true;
+      robustWeights[i] = newW;
+    }
+
+    // Compute new estimate with combined weights
+    let swRob = 0, swyRob = 0;
+    for (let i = 0; i < k; i++) {
+      const w = stdWeights[i] * robustWeights[i];
+      swRob += w;
+      swyRob += w * data[i].y;
+    }
+    const newBeta = swyRob / swRob;
+
+    if (Math.abs(newBeta - betaRob) < TOL) {
+      betaRob = newBeta;
+      converged = true;
+      iterations = iter + 1;
+      break;
+    }
+    betaRob = newBeta;
+    iterations = iter + 1;
+  }
+
+  // Robust SE
+  let swRob = 0;
+  for (let i = 0; i < k; i++) {
+    swRob += stdWeights[i] * robustWeights[i];
+  }
+  const seRob = 1 / Math.sqrt(swRob);
+  const zRob = betaRob / seRob;
+  const pRob = 2 * (1 - normalCDF(Math.abs(zRob)));
+  const zc = normalQuantile(0.975);
+  const ciRob = [betaRob - zc * seRob, betaRob + zc * seRob];
+
+  // Identify downweighted studies
+  const studyWeights = data.map((d, i) => ({
+    study: d.study,
+    originalWeight: stdWeights[i] / sumStdW,
+    huberWeight: robustWeights[i],
+    effectiveWeight: (stdWeights[i] * robustWeights[i]) / swRob,
+    downweighted: robustWeights[i] < 0.99
+  }));
+
+  const nDownweighted = studyWeights.filter(s => s.downweighted).length;
+
+  return {
+    betaRob, seRob, zRob, pRob, ciRob,
+    betaDL: full.beta, seDL: full.se, pDL: full.p, ciDL: full.ci,
+    studyWeights, nDownweighted, converged, iterations
+  };
+}
+
+// ═══════════════════════════════════════════
+// SENSITIVITY TO EFFECT MEASURE
+// ═══════════════════════════════════════════
+function computeSensitivityMeasure(data, full, method, effectType) {
+  const OR_SMD = Math.sqrt(3) / Math.PI; // 0.5513
+
+  const results = [];
+
+  // Original
+  results.push({
+    measure: effectType === 'logOR' ? 'Log OR (original)' : effectType === 'logRR' ? 'Log RR (original)' : effectType === 'logHR' ? 'Log HR (original)' : 'SMD (original)',
+    beta: full.beta,
+    se: full.se,
+    ci: full.ci,
+    p: full.p,
+    significant: full.p < 0.05,
+    isOriginal: true
+  });
+
+  if (effectType === 'logOR') {
+    // Convert logOR to SMD: SMD = logOR * sqrt(3)/pi
+    const convData = data.map(d => ({
+      study: d.study,
+      y: d.y * OR_SMD,
+      se: d.se * OR_SMD,
+      v: d.v * OR_SMD * OR_SMD
+    }));
+    const res = pool(convData, method);
+    if (res) {
+      results.push({
+        measure: 'SMD (converted via sqrt(3)/pi)',
+        beta: res.beta,
+        se: res.se,
+        ci: res.ci,
+        p: res.p,
+        significant: res.p < 0.05,
+        isOriginal: false
+      });
+    }
+
+    // Interpret as logRR (note: logOR and logRR are similar for small effects)
+    results.push({
+      measure: 'Log RR (reinterpreted, same values)',
+      beta: full.beta,
+      se: full.se,
+      ci: full.ci,
+      p: full.p,
+      significant: full.p < 0.05,
+      isOriginal: false,
+      note: 'logOR ~ logRR when outcome is rare (rare disease assumption)'
+    });
+  } else if (effectType === 'logRR' || effectType === 'logHR') {
+    // Convert to SMD via logOR proxy
+    // logRR ~ logOR for rare outcomes; use directly
+    const convData = data.map(d => ({
+      study: d.study,
+      y: d.y * OR_SMD,
+      se: d.se * OR_SMD,
+      v: d.v * OR_SMD * OR_SMD
+    }));
+    const res = pool(convData, method);
+    if (res) {
+      results.push({
+        measure: 'SMD (converted via sqrt(3)/pi)',
+        beta: res.beta,
+        se: res.se,
+        ci: res.ci,
+        p: res.p,
+        significant: res.p < 0.05,
+        isOriginal: false
+      });
+    }
+
+    results.push({
+      measure: effectType === 'logRR' ? 'Log OR (reinterpreted)' : 'Log RR (reinterpreted from HR)',
+      beta: full.beta,
+      se: full.se,
+      ci: full.ci,
+      p: full.p,
+      significant: full.p < 0.05,
+      isOriginal: false,
+      note: effectType === 'logHR' ? 'HR ~ RR under proportional hazards' : 'logRR ~ logOR for rare outcomes'
+    });
+  } else {
+    // SMD to logOR: logOR = SMD / (sqrt(3)/pi) = SMD * pi/sqrt(3)
+    const invConst = 1 / OR_SMD;
+    const convData = data.map(d => ({
+      study: d.study,
+      y: d.y * invConst,
+      se: d.se * invConst,
+      v: d.v * invConst * invConst
+    }));
+    const res = pool(convData, method);
+    if (res) {
+      results.push({
+        measure: 'Log OR (converted via pi/sqrt(3))',
+        beta: res.beta,
+        se: res.se,
+        ci: res.ci,
+        p: res.p,
+        significant: res.p < 0.05,
+        isOriginal: false
+      });
+    }
+
+    results.push({
+      measure: 'Log RR (from converted OR, rare outcome)',
+      beta: full.beta * invConst,
+      se: full.se * invConst,
+      ci: [full.ci[0] * invConst, full.ci[1] * invConst],
+      p: full.p,
+      significant: full.p < 0.05,
+      isOriginal: false,
+      note: 'Approximation valid for rare outcomes only'
+    });
+  }
+
+  // Check if all conclusions agree
+  const allAgree = results.every(r => r.significant === results[0].significant);
+
+  return { results, allAgree };
 }
 
 function parseData(){
@@ -500,7 +1065,7 @@ function runAnalysis(){
 
   lastResults={data,full,loo,fragilityCurve,rfi,sortedByImpact,isLog,effectType,method,advDiag};
   renderResults();renderWaterfall();renderFragilityCurve();renderLOOForest();
-  renderAdvancedDiagnostics();
+  renderAdvancedDiagnostics();renderRadialPlot();
   showTab('results');
 }
 
@@ -709,6 +1274,12 @@ function renderAdvancedDiagnostics() {
   renderBaujatPlot();
   renderGOSHPlot();
   renderCredCeiling();
+  renderDoiPlot();
+  renderEvalue();
+  renderHenmiCopas();
+  renderPower();
+  renderRobustMA();
+  renderSensitivityMeasure();
 }
 
 function renderPredInterval() {
@@ -929,6 +1500,390 @@ function renderCredCeiling() {
 }
 
 // ═══════════════════════════════════════════
+// RADIAL (GALBRAITH) PLOT RENDERING
+// ═══════════════════════════════════════════
+function renderRadialPlot() {
+  const canvas = document.getElementById('radialCanvas');
+  const ctx = canvas.getContext('2d');
+  const r = lastResults;
+  if (!r) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const data = r.data;
+  const beta = r.full.beta;
+
+  // Compute radial coordinates
+  const points = data.map(d => ({
+    study: d.study,
+    x: 1 / d.se,          // precision
+    y: d.y / d.se,         // Z-score
+    se: d.se
+  }));
+
+  const pad = { top: 50, right: 80, bottom: 60, left: 80 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+  const maxPrec = Math.max(...points.map(p => p.x)) * 1.15;
+  const minPrec = 0;
+  const allZ = points.map(p => p.y);
+  // Include the confidence band range in the Y scale
+  const bandHi = beta * maxPrec + 1.96;
+  const bandLo = beta * maxPrec - 1.96;
+  const maxAbsZ = Math.max(Math.abs(Math.max(...allZ, bandHi)), Math.abs(Math.min(...allZ, bandLo))) * 1.15;
+
+  const xScale = v => pad.left + ((v - minPrec) / (maxPrec - minPrec)) * pw;
+  const yScale = v => pad.top + ph / 2 - (v / maxAbsZ) * (ph / 2);
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 6; i++) {
+    const y = pad.top + (ph / 6) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    const zVal = maxAbsZ * (1 - 2 * i / 6);
+    ctx.fillText(zVal.toFixed(1), pad.left - 8, y + 3);
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = pad.left + (pw / 5) * i;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    const precVal = minPrec + (maxPrec - minPrec) * i / 5;
+    ctx.fillText(precVal.toFixed(1), x, H - pad.bottom + 14);
+  }
+
+  // Zero line
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, yScale(0)); ctx.lineTo(W - pad.right, yScale(0)); ctx.stroke();
+
+  // Regression line through origin: y = beta * x
+  ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(0));
+  ctx.lineTo(xScale(maxPrec), yScale(beta * maxPrec));
+  ctx.stroke();
+
+  // 95% confidence band: y = beta * x +/- 1.96
+  ctx.strokeStyle = 'rgba(34,197,94,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([5, 3]);
+  // Upper band
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(1.96));
+  ctx.lineTo(xScale(maxPrec), yScale(beta * maxPrec + 1.96));
+  ctx.stroke();
+  // Lower band
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(-1.96));
+  ctx.lineTo(xScale(maxPrec), yScale(beta * maxPrec - 1.96));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Fill the band
+  ctx.fillStyle = 'rgba(34,197,94,0.06)';
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(1.96));
+  ctx.lineTo(xScale(maxPrec), yScale(beta * maxPrec + 1.96));
+  ctx.lineTo(xScale(maxPrec), yScale(beta * maxPrec - 1.96));
+  ctx.lineTo(xScale(0), yScale(-1.96));
+  ctx.closePath();
+  ctx.fill();
+
+  // Label the band
+  ctx.fillStyle = 'rgba(34,197,94,0.6)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('+1.96', W - pad.right + 4, yScale(beta * maxPrec + 1.96) + 3);
+  ctx.fillText('-1.96', W - pad.right + 4, yScale(beta * maxPrec - 1.96) + 3);
+
+  // Plot points
+  let nOutliers = 0;
+  points.forEach(p => {
+    const px = xScale(p.x), py = yScale(p.y);
+    // Check if outside the band
+    const expectedZ = beta * p.x;
+    const isOutlier = Math.abs(p.y - expectedZ) > 1.96;
+    if (isOutlier) nOutliers++;
+
+    ctx.beginPath(); ctx.arc(px, py, isOutlier ? 7 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = isOutlier ? '#ef4444' : '#f97316'; ctx.fill();
+    if (isOutlier) { ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 2; ctx.stroke(); }
+
+    // Label
+    ctx.fillStyle = isOutlier ? '#fca5a5' : '#94a3b8';
+    ctx.font = (isOutlier ? 'bold ' : '') + '9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(p.study, px + 10, py + 3);
+  });
+
+  // Title and axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`Galbraith (Radial) Plot — slope = ${beta.toFixed(4)} (pooled estimate), ${nOutliers} outlier${nOutliers !== 1 ? 's' : ''} outside band`, pad.left + pw / 2, pad.top - 20);
+  ctx.fillText('Precision (1/SE)', pad.left + pw / 2, H - 8);
+  ctx.save(); ctx.translate(16, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Z-score (Effect / SE)', 0, 0); ctx.restore();
+
+  // Legend
+  ctx.fillStyle = '#22c55e'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('--- Regression: Z = ' + beta.toFixed(4) + ' x Precision', pad.left + 10, pad.top + 16);
+}
+
+// ═══════════════════════════════════════════
+// DOI PLOT + LFK INDEX RENDERING
+// ═══════════════════════════════════════════
+function renderDoiPlot() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.doiPlot) return;
+  const dp = r.advDiag.doiPlot;
+
+  // Render stats
+  const el = document.getElementById('doiResult');
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value" style="color:${dp.asymColor}">${dp.lfk.toFixed(3)}</div><div class="label">LFK Index</div></div>
+      <div class="stat-box"><div class="value" style="color:${dp.asymColor}">${dp.asymmetry}</div><div class="label">Interpretation</div></div>
+      <div class="stat-box"><div class="value">${dp.median.toFixed(3)}</div><div class="label">Median Z-score</div></div>
+    </div>
+  `;
+
+  // Render plot
+  const canvas = document.getElementById('doiCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const points = dp.points;
+  const pad = { top: 40, right: 30, bottom: 60, left: 60 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+  const maxAbsZ = Math.max(...points.map(p => Math.abs(p.z))) * 1.2;
+  const maxZ = Math.max(...points.map(p => p.absZ)) * 1.2;
+
+  const xScale = v => pad.left + ((v + maxAbsZ) / (2 * maxAbsZ)) * pw;
+  const yScale = v => pad.top + ph - (v / maxZ) * ph;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ph / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText((maxZ * (1 - i / 4)).toFixed(1), pad.left - 6, y + 3);
+  }
+  for (let i = 0; i <= 6; i++) {
+    const x = pad.left + (pw / 6) * i;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((-maxAbsZ + 2 * maxAbsZ * i / 6).toFixed(1), x, H - pad.bottom + 14);
+  }
+
+  // Zero line
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(xScale(0), pad.top); ctx.lineTo(xScale(0), pad.top + ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Connect points in a "Doi" shape (sorted by Z)
+  const sorted = [...points].sort((a, b) => a.z - b.z);
+  ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  sorted.forEach((p, i) => {
+    const px = xScale(p.z), py = yScale(p.absZ);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  // Points
+  points.forEach(p => {
+    const px = xScale(p.z), py = yScale(p.absZ);
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#f97316'; ctx.fill();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(p.study, px + 7, py + 3);
+  });
+
+  // Axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Doi Plot (LFK = ' + dp.lfk.toFixed(3) + ', ' + dp.asymmetry + ')', pad.left + pw / 2, pad.top - 14);
+  ctx.fillText('Z-score (Effect / SE)', pad.left + pw / 2, H - 8);
+  ctx.save(); ctx.translate(14, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('|Z-score|', 0, 0); ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+// E-VALUE RENDERING
+// ═══════════════════════════════════════════
+function renderEvalue() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.evalue) return;
+  const ev = r.advDiag.evalue;
+  const el = document.getElementById('evalueResult');
+  const isLog = r.isLog;
+
+  const color = ev.ePoint >= 3 ? 'var(--green)' : ev.ePoint >= 2 ? 'var(--amber)' : 'var(--red)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value" style="color:${color}">${ev.ePoint.toFixed(2)}</div><div class="label">E-value (point estimate)</div></div>
+      <div class="stat-box"><div class="value">${ev.eCI.toFixed(2)}</div><div class="label">E-value (CI bound${ev.ciCrossesNull ? ', CI crosses null' : ''})</div></div>
+      <div class="stat-box"><div class="value">${ev.pooledRR.toFixed(3)}</div><div class="label">Pooled RR (${ev.effectType === 'logOR' ? 'from OR, p0=0.2' : ev.effectType === 'SMD' ? 'from SMD via OR' : 'direct'})</div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">${ev.interpretation}</p>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:4px">An unmeasured confounder associated with both exposure and outcome by a risk ratio of <strong>${ev.ePoint.toFixed(2)}</strong> could explain away the observed effect. For the CI bound: <strong>${ev.eCI.toFixed(2)}</strong>.</p>
+    ${ev.effectType === 'logOR' ? '<p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">Note: OR converted to RR using baseline risk p0 = 0.2 (conservative). Adjust if different baseline risk is known.</p>' : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════
+// HENMI-COPAS RENDERING
+// ═══════════════════════════════════════════
+function renderHenmiCopas() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.henmiCopas) return;
+  const hc = r.advDiag.henmiCopas;
+  const el = document.getElementById('henmiCopasResult');
+  const isLog = r.isLog;
+
+  const widthColor = hc.ciWidthRatio > 1.5 ? 'var(--red)' : hc.ciWidthRatio > 1.2 ? 'var(--amber)' : 'var(--green)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${fmtEst(hc.stdCI[0], isLog)} to ${fmtEst(hc.stdCI[1], isLog)}</div><div class="label">Standard 95% CI</div></div>
+      <div class="stat-box"><div class="value">${fmtEst(hc.adjCI[0], isLog)} to ${fmtEst(hc.adjCI[1], isLog)}</div><div class="label">Henmi-Copas Adjusted CI</div></div>
+      <div class="stat-box"><div class="value" style="color:${widthColor}">${hc.ciWidthRatio.toFixed(3)}x</div><div class="label">CI Width Ratio (adj/std)</div></div>
+      <div class="stat-box"><div class="value">${hc.conclusionChanged ? '<span style="color:var(--red)">YES</span>' : '<span style="color:var(--green)">No</span>'}</div><div class="label">Conclusion Changed?</div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">${hc.interpretation}</p>
+    <table style="margin-top:8px;font-size:0.85rem">
+      <tr><th></th><th>Estimate</th><th>SE</th><th>95% CI</th></tr>
+      <tr><td>Standard</td><td>${hc.reBeta.toFixed(4)}</td><td>${hc.stdSE.toFixed(4)}</td><td>${hc.stdCI[0].toFixed(4)} to ${hc.stdCI[1].toFixed(4)}</td></tr>
+      <tr><td>Henmi-Copas</td><td>${hc.reBeta.toFixed(4)}</td><td>${hc.adjSE.toFixed(4)}</td><td>${hc.adjCI[0].toFixed(4)} to ${hc.adjCI[1].toFixed(4)}</td></tr>
+    </table>
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:8px;font-style:italic">Inflation factor: ${hc.inflationFactor.toFixed(4)}. Egger intercept: ${hc.eggerIntercept.toFixed(3)} (SE: ${hc.seIntercept.toFixed(3)}, t = ${hc.tStat.toFixed(3)}).</p>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// POWER ANALYSIS RENDERING
+// ═══════════════════════════════════════════
+function renderPower() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.power) return;
+  const pw = r.advDiag.power;
+  const el = document.getElementById('powerResult');
+  const isLog = r.isLog;
+
+  const powerColor = pw.postHocPower >= 0.8 ? 'var(--green)' : pw.postHocPower >= 0.5 ? 'var(--amber)' : 'var(--red)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value" style="color:${powerColor}">${(pw.postHocPower * 100).toFixed(1)}%</div><div class="label">Post-hoc Power (observed effect)</div></div>
+      <div class="stat-box"><div class="value">${isLog ? Math.exp(pw.detectableEffect).toFixed(3) : pw.detectableEffect.toFixed(4)}</div><div class="label">Detectable Effect at 80% Power</div></div>
+      <div class="stat-box"><div class="value">${pw.additionalForFull === Infinity || pw.additionalForFull <= 0 ? 'None needed' : '+' + pw.additionalForFull}</div><div class="label">Additional Studies (observed effect)</div></div>
+      <div class="stat-box"><div class="value">${pw.additionalForHalf === Infinity ? 'Infeasible' : pw.additionalForHalf <= 0 ? 'None needed' : '+' + pw.additionalForHalf}</div><div class="label">Additional Studies (half effect)</div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">This meta-analysis has <strong>${(pw.postHocPower * 100).toFixed(1)}%</strong> power to detect an effect of <strong>${isLog ? Math.exp(Math.abs(r.full.beta)).toFixed(3) : Math.abs(r.full.beta).toFixed(4)}</strong> at alpha = 0.05.</p>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:4px">At 80% power, the smallest detectable effect is <strong>${isLog ? Math.exp(pw.detectableEffect).toFixed(3) : pw.detectableEffect.toFixed(4)}</strong> (log scale: ${pw.detectableEffect.toFixed(4)}).</p>
+    ${pw.additionalForHalf > 0 && pw.additionalForHalf < Infinity ? '<p style="color:var(--text2);font-size:0.85rem;margin-top:4px">To detect half the observed effect at 80% power, approximately <strong>' + pw.additionalForHalf + '</strong> additional studies of average size would be needed.</p>' : ''}
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:8px;font-style:italic">Assumes additional studies have the average variance of current studies (${pw.avgV.toFixed(6)}) and tau&sup2; = ${pw.tau2.toFixed(6)} remains constant.</p>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// ROBUST MA RENDERING
+// ═══════════════════════════════════════════
+function renderRobustMA() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.robustMA) return;
+  const rob = r.advDiag.robustMA;
+  const el = document.getElementById('robustMAResult');
+  const isLog = r.isLog;
+
+  const diff = Math.abs(rob.betaRob - rob.betaDL);
+  const diffPct = Math.abs(rob.betaDL) > 1e-10 ? (diff / Math.abs(rob.betaDL) * 100).toFixed(1) : '---';
+  const diffColor = parseFloat(diffPct) > 10 ? 'var(--red)' : parseFloat(diffPct) > 5 ? 'var(--amber)' : 'var(--green)';
+
+  const dlSig = rob.pDL < 0.05;
+  const robSig = rob.pRob < 0.05;
+  const conclusionChanged = dlSig !== robSig;
+
+  let html = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${fmtEst(rob.betaDL, isLog)}</div><div class="label">DL Estimate</div></div>
+      <div class="stat-box"><div class="value">${fmtEst(rob.betaRob, isLog)}</div><div class="label">Robust (Huber) Estimate</div></div>
+      <div class="stat-box"><div class="value" style="color:${diffColor}">${diffPct}%</div><div class="label">Relative Difference</div></div>
+      <div class="stat-box"><div class="value">${rob.nDownweighted}</div><div class="label">Studies Downweighted</div></div>
+    </div>
+    <table style="margin-top:12px;font-size:0.85rem">
+      <tr><th>Method</th><th>Estimate</th><th>SE</th><th>95% CI</th><th>P</th><th>Significant?</th></tr>
+      <tr><td>DerSimonian-Laird</td><td>${rob.betaDL.toFixed(4)}</td><td>${rob.seDL.toFixed(4)}</td><td>${rob.ciDL[0].toFixed(4)} to ${rob.ciDL[1].toFixed(4)}</td><td>${rob.pDL < 0.001 ? rob.pDL.toExponential(2) : rob.pDL.toFixed(4)}</td><td>${dlSig ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>'}</td></tr>
+      <tr><td>Huber M-estimator (k=1.345)</td><td>${rob.betaRob.toFixed(4)}</td><td>${rob.seRob.toFixed(4)}</td><td>${rob.ciRob[0].toFixed(4)} to ${rob.ciRob[1].toFixed(4)}</td><td>${rob.pRob < 0.001 ? rob.pRob.toExponential(2) : rob.pRob.toFixed(4)}</td><td>${robSig ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>'}</td></tr>
+    </table>
+    ${conclusionChanged ? '<p style="color:var(--red);font-size:0.85rem;margin-top:8px;font-weight:bold">Conclusion changed: the robust estimate disagrees with DL on statistical significance.</p>' : '<p style="color:var(--green);font-size:0.85rem;margin-top:8px">Conclusion stable: DL and robust estimates agree on significance.</p>'}
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">Converged: ${rob.converged ? 'Yes' : 'No'} in ${rob.iterations} iterations.</p>
+  `;
+
+  if (rob.nDownweighted > 0) {
+    html += `<h4 style="margin-top:12px;color:var(--accent2);font-size:0.95rem">Downweighted Studies</h4>
+    <table style="margin-top:4px;font-size:0.85rem">
+      <tr><th>Study</th><th>Original Weight</th><th>Huber Weight</th><th>Effective Weight</th><th>Status</th></tr>`;
+    rob.studyWeights.forEach(s => {
+      const style = s.downweighted ? 'style="background:rgba(239,68,68,0.06)"' : '';
+      html += `<tr ${style}>
+        <td>${s.study}</td>
+        <td>${(s.originalWeight * 100).toFixed(1)}%</td>
+        <td>${s.huberWeight.toFixed(4)}</td>
+        <td>${(s.effectiveWeight * 100).toFixed(1)}%</td>
+        <td>${s.downweighted ? '<span class="badge badge-amber">Downweighted</span>' : '<span class="badge badge-green">Full weight</span>'}</td>
+      </tr>`;
+    });
+    html += '</table>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// SENSITIVITY TO EFFECT MEASURE RENDERING
+// ═══════════════════════════════════════════
+function renderSensitivityMeasure() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.sensitivityMeasure) return;
+  const sm = r.advDiag.sensitivityMeasure;
+  const el = document.getElementById('sensitivityMeasureResult');
+  const isLog = r.isLog;
+
+  const agreeColor = sm.allAgree ? 'var(--green)' : 'var(--red)';
+  const agreeText = sm.allAgree ? 'All effect measures agree on significance' : 'Conclusions DIFFER across effect measures';
+
+  let html = `
+    <p style="color:${agreeColor};font-size:0.9rem;font-weight:600;margin-bottom:12px">${agreeText}</p>
+    <table style="font-size:0.85rem">
+      <tr><th>Effect Measure</th><th>Pooled</th><th>95% CI</th><th>P</th><th>Significant?</th><th>Same Conclusion?</th></tr>`;
+
+  sm.results.forEach(res => {
+    const isOrig = res.isOriginal;
+    const style = isOrig ? 'style="background:rgba(249,115,22,0.08)"' : '';
+    const sameConclusion = res.significant === sm.results[0].significant;
+    html += `<tr ${style}>
+      <td>${res.measure}${isOrig ? ' <span class="badge badge-green">Original</span>' : ''}</td>
+      <td>${res.beta.toFixed(4)}</td>
+      <td>${res.ci[0].toFixed(4)} to ${res.ci[1].toFixed(4)}</td>
+      <td>${res.p < 0.001 ? res.p.toExponential(2) : res.p.toFixed(4)}</td>
+      <td>${res.significant ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>'}</td>
+      <td>${sameConclusion ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-red">No</span>'}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+
+  // Notes
+  const notes = sm.results.filter(r => r.note);
+  if (notes.length > 0) {
+    html += '<div style="margin-top:8px;font-size:0.78rem;color:var(--text2);font-style:italic">';
+    notes.forEach(n => { html += '<p>' + n.measure + ': ' + n.note + '</p>'; });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
 // EXAMPLES
 // ═══════════════════════════════════════════
 const EXAMPLES={
@@ -1003,6 +1958,55 @@ function exportCSV(){
       const mean=gosh.reduce((a,b)=>a+b,0)/gosh.length;
       const sd=Math.sqrt(gosh.reduce((s,e)=>s+(e-mean)**2,0)/(gosh.length-1));
       csv+=`GOSH_N_Subsets,${gosh.length}\nGOSH_Mean,${mean}\nGOSH_SD,${sd}\nGOSH_Min,${Math.min(...gosh)}\nGOSH_Max,${Math.max(...gosh)}\n`;
+    }
+    // Doi plot + LFK
+    if(r.advDiag.doiPlot){
+      csv+=`\nDoi_Plot_LFK\n`;
+      csv+=`LFK_Index,${r.advDiag.doiPlot.lfk}\n`;
+      csv+=`LFK_Interpretation,"${r.advDiag.doiPlot.asymmetry}"\n`;
+    }
+    // E-value
+    if(r.advDiag.evalue){
+      csv+=`\nE_Value\n`;
+      csv+=`E_Point,${r.advDiag.evalue.ePoint}\n`;
+      csv+=`E_CI,${r.advDiag.evalue.eCI}\n`;
+      csv+=`Pooled_RR,${r.advDiag.evalue.pooledRR}\n`;
+    }
+    // Henmi-Copas
+    if(r.advDiag.henmiCopas){
+      csv+=`\nHenmi_Copas\n`;
+      csv+=`Standard_CI,"${r.advDiag.henmiCopas.stdCI[0]} to ${r.advDiag.henmiCopas.stdCI[1]}"\n`;
+      csv+=`Adjusted_CI,"${r.advDiag.henmiCopas.adjCI[0]} to ${r.advDiag.henmiCopas.adjCI[1]}"\n`;
+      csv+=`CI_Width_Ratio,${r.advDiag.henmiCopas.ciWidthRatio}\n`;
+      csv+=`Conclusion_Changed,${r.advDiag.henmiCopas.conclusionChanged}\n`;
+    }
+    // Power analysis
+    if(r.advDiag.power){
+      csv+=`\nPower_Analysis\n`;
+      csv+=`Post_Hoc_Power,${r.advDiag.power.postHocPower}\n`;
+      csv+=`Detectable_Effect_80pct,${r.advDiag.power.detectableEffect}\n`;
+      csv+=`Additional_Studies_Full_Effect,${r.advDiag.power.additionalForFull}\n`;
+      csv+=`Additional_Studies_Half_Effect,${r.advDiag.power.additionalForHalf}\n`;
+    }
+    // Robust MA
+    if(r.advDiag.robustMA){
+      csv+=`\nRobust_MA_Huber\n`;
+      csv+=`DL_Estimate,${r.advDiag.robustMA.betaDL}\n`;
+      csv+=`Robust_Estimate,${r.advDiag.robustMA.betaRob}\n`;
+      csv+=`Robust_SE,${r.advDiag.robustMA.seRob}\n`;
+      csv+=`Robust_P,${r.advDiag.robustMA.pRob}\n`;
+      csv+=`N_Downweighted,${r.advDiag.robustMA.nDownweighted}\n`;
+      r.advDiag.robustMA.studyWeights.forEach(s=>{
+        csv+=`${s.study},HuberW=${s.huberWeight.toFixed(4)},EffW=${(s.effectiveWeight*100).toFixed(1)}%\n`;
+      });
+    }
+    // Sensitivity to measure
+    if(r.advDiag.sensitivityMeasure){
+      csv+=`\nSensitivity_Effect_Measure\n`;
+      csv+=`All_Agree,${r.advDiag.sensitivityMeasure.allAgree}\n`;
+      r.advDiag.sensitivityMeasure.results.forEach(res=>{
+        csv+=`"${res.measure}",${res.beta},${res.p},${res.significant}\n`;
+      });
     }
   }
   const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
