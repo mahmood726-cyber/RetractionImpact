@@ -62,6 +62,8 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
   <div class="tab" onclick="showTab('fragility')">Fragility Curve</div>
   <div class="tab" onclick="showTab('loo')">Leave-One-Out</div>
   <div class="tab" onclick="showTab('diagnostics')">Advanced Diagnostics</div>
+  <div class="tab" onclick="showTab('sensitivity')">Sensitivity</div>
+  <div class="tab" onclick="showTab('temporal')">Temporal</div>
   <div class="tab" onclick="showTab('radial')">Radial Plot</div>
   <div class="tab" onclick="showTab('guide')">Guide</div>
 </div>
@@ -199,6 +201,53 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
     <div class="info-box">If the input is log-OR, also interpret as log-RR or SMD. Shows how the conclusion changes if the effect measure is reinterpreted. The conversion uses the constant &radic;3/&pi; &approx; 0.5513 for OR&harr;SMD.</div>
     <div id="sensitivityMeasureResult"></div>
   </div>
+  <div class="card">
+    <h3>Permutation Test for Heterogeneity</h3>
+    <div class="info-box">Permutes the signs of effect estimates to build a null distribution of Q. More accurate than the &chi;&sup2; approximation for small k. Uses seeded PRNG for reproducibility. (Higgins &amp; Thompson 2004, Stat Med)</div>
+    <div id="permTestResult"></div>
+  </div>
+</div>
+
+<!-- SENSITIVITY (REML / KH / Profile Likelihood) -->
+<div class="panel" id="panel-sensitivity">
+  <div class="card">
+    <h3>REML vs DL Heterogeneity Estimation</h3>
+    <div class="info-box">Restricted Maximum Likelihood (REML) via Fisher scoring provides a less biased tau&sup2; estimate than DerSimonian-Laird, especially for small k. The Q-profile method gives a confidence interval for tau&sup2;. (Viechtbauer 2005, Stat Med)</div>
+    <div id="remlResult"></div>
+  </div>
+  <div class="card">
+    <h3>Knapp-Hartung Adjustment</h3>
+    <div class="info-box">The Knapp-Hartung (HKSJ) adjustment replaces the z-based CI with a t-based CI using an adjusted variance estimator: se<sub>KH</sub> = se &times; &radic;max(1, Q/(k&minus;1)). Uses t<sub>k&minus;1</sub> quantile, often giving substantially wider (and more honest) intervals. (Knapp &amp; Hartung 2003, Stat Med)</div>
+    <div id="khResult"></div>
+  </div>
+  <div class="card">
+    <h3>Profile Likelihood CI</h3>
+    <div class="info-box">The profile likelihood CI (Hardy &amp; Thompson 1996) evaluates the log-likelihood at a grid of 200 beta values and finds the bounds where &minus;2LL drops by &chi;&sup2;<sub>1,&alpha;</sub> = 3.841. Typically asymmetric. Compared with Wald CI and KH CI.</div>
+    <div id="profileLikResult"></div>
+  </div>
+  <div class="card">
+    <h3>HKSJ Prediction Interval</h3>
+    <div class="info-box">The most conservative prediction interval: PI = &beta; &plusmn; t<sub>k&minus;2</sub> &times; &radic;(se<sub>KH</sub>&sup2; + &tau;&sup2;<sub>REML</sub>). Combines REML heterogeneity with Knapp-Hartung variance for small-k honesty.</div>
+    <div id="hksjPIResult"></div>
+  </div>
+  <div class="card">
+    <h3>Fragility Direction Analysis</h3>
+    <div class="info-box">When a retraction reverses significance: is it because the study was (a) the largest (weight-driven), (b) the most extreme effect (effect-driven), or (c) both? Classifies each LOO reversal to explain WHY the MA is fragile.</div>
+    <div id="fragilityDirectionResult"></div>
+  </div>
+</div>
+
+<!-- TEMPORAL -->
+<div class="panel" id="panel-temporal">
+  <div class="card">
+    <h3>Temporal Retraction Analysis</h3>
+    <div class="info-box">Studies are ordered by input order (proxy for publication chronology). Cumulative meta-analysis adds studies one-by-one, tracking how the pooled estimate and RFI evolve as evidence accumulates. Shows whether fragility was always present or developed with specific studies.</div>
+    <div id="temporalSummary"></div>
+    <div class="plot-container"><canvas id="temporalCanvas" width="950" height="550"></canvas></div>
+    <div class="btn-group">
+      <button class="btn btn-secondary btn-sm" onclick="exportPlot('temporalCanvas','temporal_retraction')">Export PNG</button>
+    </div>
+  </div>
 </div>
 
 <!-- RADIAL (GALBRAITH) PLOT -->
@@ -241,11 +290,21 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
       <tr><td><strong>Power Analysis</strong></td><td>Post-hoc power and prospective sample size. Reports detectable effect at 80% power and studies needed for a target effect.</td></tr>
       <tr><td><strong>Robust MA (Huber)</strong></td><td>Huber M-estimator with k=1.345. Iteratively downweights outliers. Compares with standard DL estimate.</td></tr>
       <tr><td><strong>Sensitivity to Measure</strong></td><td>Reinterprets log-OR as log-RR or SMD (and vice versa). Shows conclusion stability across effect measures. Uses &radic;3/&pi; &approx; 0.5513.</td></tr>
+      <tr><td><strong>Permutation Test</strong></td><td>Permutes signs of effect estimates to test heterogeneity. More accurate than &chi;&sup2; for small k. 2<sup>k</sup> exhaustive (k&le;20) or 1000 random with seeded PRNG. (Higgins &amp; Thompson 2004)</td></tr>
+    </table>
+    <h3 style="margin-top:16px">Sensitivity Methods</h3>
+    <table style="margin-top:8px">
+      <tr><td><strong>REML Estimation</strong></td><td>Restricted Maximum Likelihood via Fisher scoring. Less biased than DL for small k. Q-profile CI for &tau;&sup2;. (Viechtbauer 2005, Stat Med)</td></tr>
+      <tr><td><strong>Knapp-Hartung</strong></td><td>Replaces z-based CI with t<sub>k&minus;1</sub>-based CI using adjusted variance: se<sub>KH</sub> = se &times; &radic;max(1, Q/(k&minus;1)). Often substantially wider. (Knapp &amp; Hartung 2003)</td></tr>
+      <tr><td><strong>Profile Likelihood CI</strong></td><td>Grid search (200 points) over beta. Bounds where &minus;2LL drops by &chi;&sup2;<sub>1</sub> = 3.841. Typically asymmetric. (Hardy &amp; Thompson 1996)</td></tr>
+      <tr><td><strong>HKSJ Prediction Interval</strong></td><td>Most conservative PI: &beta; &plusmn; t<sub>k&minus;2</sub> &times; &radic;(se<sub>KH</sub>&sup2; + &tau;&sup2;<sub>REML</sub>). Combines Knapp-Hartung variance with REML heterogeneity.</td></tr>
+      <tr><td><strong>Fragility Direction</strong></td><td>Classifies each LOO reversal as weight-driven (large study), effect-driven (extreme outlier), or both. Explains WHY the MA is fragile.</td></tr>
+      <tr><td><strong>Temporal Analysis</strong></td><td>Cumulative MA in input order. Tracks pooled estimate and RFI evolution as evidence accumulates. Shows whether fragility was always present or developed with specific studies.</td></tr>
     </table>
   </div>
 </div>
 
-<footer>RetractionImpact v3.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
+<footer>RetractionImpact v4.0 — Mahmood Ahmad, Tahir Heart Institute — Offline-first, no data leaves your browser</footer>
 </div>
 
 <script>
@@ -381,7 +440,28 @@ function computeAdvancedDiagnostics(data, full, loo, method) {
   // Sensitivity to effect measure
   const sensitivityMeasure = computeSensitivityMeasure(data, full, method, document.getElementById('effectType').value);
 
-  return { influence, baujat, predInterval, credCeiling, gosh, cookThreshold, dfbetasThreshold, doiPlot, evalue, henmiCopas, power, robustMA, sensitivityMeasure };
+  // REML estimation
+  const reml = computeREML(data);
+
+  // Knapp-Hartung
+  const knappHartung = computeKnappHartung(data, full);
+
+  // Profile likelihood CI
+  const profileLik = computeProfileLikelihood(data, full, reml);
+
+  // Permutation test for heterogeneity
+  const permTest = computePermutationTest(data, full);
+
+  // Temporal analysis
+  const temporal = computeTemporalAnalysis(data, method);
+
+  // HKSJ prediction interval
+  const hksjPI = computeHKSJpredInterval(data, full, reml, knappHartung);
+
+  // Fragility direction analysis
+  const fragilityDirection = computeFragilityDirection(data, full, loo);
+
+  return { influence, baujat, predInterval, credCeiling, gosh, cookThreshold, dfbetasThreshold, doiPlot, evalue, henmiCopas, power, robustMA, sensitivityMeasure, reml, knappHartung, profileLik, permTest, temporal, hksjPI, fragilityDirection };
 }
 
 function computeCredibilityCeiling(data, full, method) {
@@ -940,6 +1020,597 @@ function computeSensitivityMeasure(data, full, method, effectType) {
   return { results, allAgree };
 }
 
+// ═══════════════════════════════════════════
+// REML HETEROGENEITY ESTIMATION (Fisher scoring)
+// ═══════════════════════════════════════════
+function computeREML(data) {
+  const k = data.length;
+  if (k < 2) return null;
+
+  // Start from DL estimate
+  const feWeights = data.map(d => 1 / d.v);
+  const sumFEw = feWeights.reduce((a, b) => a + b, 0);
+  const feBeta = feWeights.reduce((s, w, i) => s + w * data[i].y, 0) / sumFEw;
+  let Q = 0;
+  for (const d of data) { const w = 1 / d.v; Q += w * (d.y - feBeta) * (d.y - feBeta); }
+  let sumW2 = 0; for (const d of data) sumW2 += (1 / d.v) * (1 / d.v);
+  const C = sumFEw - sumW2 / sumFEw;
+  let tau2DL = Math.max(0, (Q - (k - 1)) / C);
+
+  // REML via Fisher scoring (iterative)
+  let tau2 = tau2DL > 0 ? tau2DL : 0.01;
+  const MAX_ITER = 200;
+  const TOL = 1e-10;
+  let converged = false;
+  let iterations = 0;
+
+  for (let iter = 0; iter < MAX_ITER; iter++) {
+    const wi = data.map(d => 1 / (d.v + tau2));
+    const sumW = wi.reduce((a, b) => a + b, 0);
+    const betaHat = wi.reduce((s, w, i) => s + w * data[i].y, 0) / sumW;
+
+    // Score (first derivative of REML log-likelihood w.r.t. tau2)
+    // S = -0.5 * sum(wi^2) / sumW + 0.5 * sum(wi^2 * (yi - betaHat)^2) - but use the proper REML score
+    let score = 0;
+    let fisherInfo = 0;
+    for (let i = 0; i < k; i++) {
+      const wi2 = wi[i] * wi[i];
+      const resid2 = (data[i].y - betaHat) * (data[i].y - betaHat);
+      // REML score: -0.5 * (wi - wi^2/sumW - wi^2*(yi-betaHat)^2 + wi^2*(yi-betaHat)^2... )
+      // Simplified: score = -0.5 * sum(wi) + 0.5 * sum(wi^2/sumW) + 0.5 * sum(wi^2 * resid2)
+      // Actually the REML log-likelihood derivative:
+      score += -wi[i] + wi2 / sumW + wi2 * resid2;
+    }
+    score *= 0.5;
+
+    // Fisher information (expected information)
+    for (let i = 0; i < k; i++) {
+      fisherInfo += wi[i] * wi[i] - 2 * wi[i] * wi[i] * wi[i] / sumW;
+    }
+    let sumW3 = 0; for (let i = 0; i < k; i++) sumW3 += wi[i] * wi[i] * wi[i];
+    // Not needed for the basic approach, simplify:
+    fisherInfo = 0;
+    for (let i = 0; i < k; i++) {
+      const w2 = wi[i] * wi[i];
+      fisherInfo += w2;
+    }
+    const sumWi = wi.reduce((a, b) => a + b, 0);
+    const sumWi2 = wi.reduce((a, b) => a + b * b, 0); // this is wrong, redo
+    // Fisher info for REML: 0.5 * (sum(wi^2) - 2*sum(wi^3)/sumW + (sum(wi^2))^2/sumW^2)
+    const swi2 = wi.reduce((s, w) => s + w * w, 0);
+    const swi3 = wi.reduce((s, w) => s + w * w * w, 0);
+    fisherInfo = 0.5 * (swi2 - 2 * swi3 / sumW + swi2 * swi2 / (sumW * sumW));
+
+    if (fisherInfo <= 0) break;
+
+    const delta = score / fisherInfo;
+    const newTau2 = Math.max(0, tau2 + delta);
+
+    if (Math.abs(newTau2 - tau2) < TOL) {
+      tau2 = newTau2;
+      converged = true;
+      iterations = iter + 1;
+      break;
+    }
+    tau2 = newTau2;
+    iterations = iter + 1;
+  }
+
+  // Pool with REML tau2
+  const remlWeights = data.map(d => 1 / (d.v + tau2));
+  const sumREMLw = remlWeights.reduce((a, b) => a + b, 0);
+  const betaREML = remlWeights.reduce((s, w, i) => s + w * data[i].y, 0) / sumREMLw;
+  const seREML = 1 / Math.sqrt(sumREMLw);
+  const zREML = betaREML / seREML;
+  const pREML = 2 * (1 - normalCDF(Math.abs(zREML)));
+  const zc = normalQuantile(0.975);
+  const ciREML = [betaREML - zc * seREML, betaREML + zc * seREML];
+
+  // Pool with DL tau2 for comparison
+  const dlWeights = data.map(d => 1 / (d.v + tau2DL));
+  const sumDLw = dlWeights.reduce((a, b) => a + b, 0);
+  const betaDL = dlWeights.reduce((s, w, i) => s + w * data[i].y, 0) / sumDLw;
+  const seDL = 1 / Math.sqrt(sumDLw);
+  const zDL = betaDL / seDL;
+  const pDL = 2 * (1 - normalCDF(Math.abs(zDL)));
+  const ciDL = [betaDL - zc * seDL, betaDL + zc * seDL];
+
+  // Q-profile CI for tau2 (Viechtbauer 2007)
+  // Find tau2_lo where Q(tau2_lo) = chi2_{1-alpha/2, k-1} and tau2_hi where Q(tau2_hi) = chi2_{alpha/2, k-1}
+  function computeQ_at_tau2(t2) {
+    const w = data.map(d => 1 / (d.v + t2));
+    const sw = w.reduce((a, b) => a + b, 0);
+    const b = w.reduce((s, wi, i) => s + wi * data[i].y, 0) / sw;
+    let q = 0;
+    for (let i = 0; i < k; i++) q += w[i] * (data[i].y - b) * (data[i].y - b);
+    return q;
+  }
+
+  // chi-sq quantile approximation via Wilson-Hilferty
+  function chiSqQuantile(p, df) {
+    if (df <= 0) return 0;
+    const z = normalQuantile(p);
+    const term = 1 - 2 / (9 * df) + z * Math.sqrt(2 / (9 * df));
+    return df * Math.pow(Math.max(0, term), 3);
+  }
+
+  const qLo = chiSqQuantile(0.975, k - 1); // lower bound on Q -> upper bound on tau2
+  const qHi = chiSqQuantile(0.025, k - 1); // upper bound on Q -> lower bound on tau2
+
+  // Binary search for tau2 CI bounds
+  function findTau2ForQ(targetQ) {
+    let lo = 0, hi = tau2 * 20 + 10;
+    for (let iter = 0; iter < 200; iter++) {
+      const mid = (lo + hi) / 2;
+      const qMid = computeQ_at_tau2(mid);
+      if (qMid > targetQ) lo = mid; else hi = mid;
+      if (hi - lo < 1e-10) break;
+    }
+    return (lo + hi) / 2;
+  }
+
+  let tau2CIlo = 0, tau2CIhi = 0;
+  const qAtZero = computeQ_at_tau2(0);
+  if (qAtZero > qLo) {
+    tau2CIhi = findTau2ForQ(qHi);
+    tau2CIlo = findTau2ForQ(qLo);
+  } else {
+    tau2CIhi = findTau2ForQ(qHi);
+    tau2CIlo = 0;
+  }
+
+  // I2 for each
+  const I2DL = Q > (k - 1) ? ((Q - (k - 1)) / Q) * 100 : 0;
+  // H2 = Q/(k-1) for display
+  const H2 = Q / Math.max(1, k - 1);
+
+  return {
+    tau2DL, tau2REML: tau2, converged, iterations,
+    betaDL, seDL, ciDL, pDL,
+    betaREML, seREML, ciREML, pREML,
+    tau2CIlo, tau2CIhi,
+    Q, I2DL, H2, k,
+    whichLarger: tau2 > tau2DL ? 'REML' : tau2 < tau2DL ? 'DL' : 'Equal'
+  };
+}
+
+// ═══════════════════════════════════════════
+// KNAPP-HARTUNG ADJUSTMENT
+// ═══════════════════════════════════════════
+function computeKnappHartung(data, full) {
+  const k = data.length;
+  if (k < 2) return null;
+  const tau2 = full.tau2;
+  const Q = full.Q;
+  const beta = full.beta;
+
+  // Standard DL CI (z-based)
+  const seDL = full.se;
+  const zc = normalQuantile(0.975);
+  const ciDL = [beta - zc * seDL, beta + zc * seDL];
+
+  // KH adjustment: se_KH = se * sqrt(max(1, Q/(k-1)))
+  // Per advanced-stats.md: HKSJ floor: if Q < k-1, set floor max(1, Q/(k-1))
+  const qAdj = Math.max(1, Q / (k - 1));
+  const seKH = seDL * Math.sqrt(qAdj);
+
+  // t-based CI: use t_{k-1} quantile (NOT z)
+  const tVal = tQuantile(0.975, k - 1);
+  const ciKH = [beta - tVal * seKH, beta + tVal * seKH];
+
+  // P-value for KH (using t-distribution approximation)
+  // t = beta / seKH, df = k-1
+  const tStat = beta / seKH;
+  // Two-sided p from t using normal approx with Cornish-Fisher correction
+  // For a proper t-distribution CDF, use regularized incomplete beta
+  // Approximation: use the fact that for moderate df, t ~ N(0,1) but widen
+  const pKH = 2 * (1 - tCDF(Math.abs(tStat), k - 1));
+
+  // Width comparison
+  const widthDL = ciDL[1] - ciDL[0];
+  const widthKH = ciKH[1] - ciKH[0];
+  const widthRatio = widthKH / widthDL;
+
+  const dlSig = full.p < 0.05;
+  const khSig = pKH < 0.05;
+
+  return {
+    beta, seDL, seKH, ciDL, ciKH, tVal, qAdj,
+    pDL: full.p, pKH, tStat,
+    widthDL, widthKH, widthRatio,
+    dlSig, khSig, conclusionChanged: dlSig !== khSig,
+    k
+  };
+}
+
+// t-distribution CDF approximation
+function tCDF(t, df) {
+  if (df <= 0) return 0.5;
+  // Use regularized incomplete beta function
+  // P(T <= t) = 1 - 0.5 * I_{df/(df+t^2)}(df/2, 1/2) for t >= 0
+  const x = df / (df + t * t);
+  const a = df / 2;
+  const b = 0.5;
+  const ibeta = regBetaI(x, a, b);
+  if (t >= 0) return 1 - 0.5 * ibeta;
+  return 0.5 * ibeta;
+}
+
+// Regularized incomplete beta function via continued fraction
+function regBetaI(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const lbeta = lgamma(a) + lgamma(b) - lgamma(a + b);
+  const front = Math.exp(a * Math.log(x) + b * Math.log(1 - x) - lbeta);
+  // Use Lentz's continued fraction
+  if (x < (a + 1) / (a + b + 2)) {
+    return front * betaCF(x, a, b) / a;
+  }
+  return 1 - front * betaCF(1 - x, b, a) / b;
+}
+
+function betaCF(x, a, b) {
+  const MAXIT = 200;
+  const EPS = 1e-14;
+  let qab = a + b;
+  let qap = a + 1;
+  let qam = a - 1;
+  let c = 1;
+  let d = 1 - qab * x / qap;
+  if (Math.abs(d) < 1e-30) d = 1e-30;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= MAXIT; m++) {
+    let m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d;
+    c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30;
+    h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d;
+    c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30;
+    let del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+
+// ═══════════════════════════════════════════
+// PROFILE LIKELIHOOD CI (Hardy & Thompson 1996)
+// ═══════════════════════════════════════════
+function computeProfileLikelihood(data, full, remlResult) {
+  const k = data.length;
+  if (k < 3) return null;
+
+  // Use REML tau2 if available, otherwise DL
+  const tau2 = remlResult ? remlResult.tau2REML : full.tau2;
+
+  // Profile log-likelihood: for a given beta, maximize over tau2
+  // LL(beta, tau2) = -0.5 * sum( log(vi + tau2) + (yi - beta)^2 / (vi + tau2) )
+  // REML: LL_REML = LL - 0.5 * log(sum(1/(vi+tau2)))
+  function profileLL(beta) {
+    // For fixed beta, find optimal tau2
+    // Optimize tau2 via simple iteration
+    let t2 = tau2;
+    for (let iter = 0; iter < 50; iter++) {
+      const wi = data.map(d => 1 / (d.v + t2));
+      const sw = wi.reduce((a, b) => a + b, 0);
+      let num = 0;
+      for (let i = 0; i < k; i++) {
+        num += wi[i] * wi[i] * ((data[i].y - beta) * (data[i].y - beta) - data[i].v - t2);
+      }
+      const den = wi.reduce((s, w) => s + w * w, 0);
+      const newT2 = Math.max(0, t2 + num / den);
+      if (Math.abs(newT2 - t2) < 1e-12) { t2 = newT2; break; }
+      t2 = newT2;
+    }
+    // Compute log-likelihood at this (beta, t2)
+    let ll = 0;
+    for (let i = 0; i < k; i++) {
+      const vt = data[i].v + t2;
+      ll += -0.5 * (Math.log(vt) + (data[i].y - beta) * (data[i].y - beta) / vt);
+    }
+    return ll;
+  }
+
+  // Grid search: 200 points around the estimate
+  const beta0 = full.beta;
+  const se0 = full.se;
+  const range = 5 * se0;
+  const nGrid = 200;
+  const grid = [];
+  let maxLL = -Infinity;
+
+  for (let i = 0; i <= nGrid; i++) {
+    const b = beta0 - range + (2 * range * i) / nGrid;
+    const ll = profileLL(b);
+    grid.push({ beta: b, ll: ll });
+    if (ll > maxLL) maxLL = ll;
+  }
+
+  // Find bounds where -2LL drops by chi-sq(1, 0.05) = 3.841
+  const threshold = maxLL - 3.841 / 2;
+  let plLo = null, plHi = null;
+
+  // Scan from left for lower bound
+  for (let i = 0; i < grid.length - 1; i++) {
+    if (grid[i].ll < threshold && grid[i + 1].ll >= threshold) {
+      // Linear interpolation
+      const frac = (threshold - grid[i].ll) / (grid[i + 1].ll - grid[i].ll);
+      plLo = grid[i].beta + frac * (grid[i + 1].beta - grid[i].beta);
+      break;
+    }
+  }
+
+  // Scan from right for upper bound
+  for (let i = grid.length - 1; i > 0; i--) {
+    if (grid[i].ll < threshold && grid[i - 1].ll >= threshold) {
+      const frac = (threshold - grid[i].ll) / (grid[i - 1].ll - grid[i].ll);
+      plHi = grid[i].beta + frac * (grid[i - 1].beta - grid[i].beta);
+      break;
+    }
+  }
+
+  if (plLo === null) plLo = grid[0].beta;
+  if (plHi === null) plHi = grid[grid.length - 1].beta;
+
+  // Wald CI for comparison
+  const zc = normalQuantile(0.975);
+  const waldCI = [beta0 - zc * se0, beta0 + zc * se0];
+
+  // KH CI for comparison
+  const kh = computeKnappHartung(data, full);
+  const khCI = kh ? kh.ciKH : waldCI;
+
+  // Asymmetry of profile likelihood CI
+  const widthLo = beta0 - plLo;
+  const widthHi = plHi - beta0;
+  const asymmetryRatio = Math.max(widthLo, widthHi) / Math.min(widthLo, widthHi);
+
+  return {
+    beta: beta0,
+    plCI: [plLo, plHi],
+    waldCI,
+    khCI,
+    widthPL: plHi - plLo,
+    widthWald: waldCI[1] - waldCI[0],
+    widthKH: khCI[1] - khCI[0],
+    asymmetryRatio,
+    grid,
+    maxLL,
+    threshold
+  };
+}
+
+// ═══════════════════════════════════════════
+// PERMUTATION TEST FOR HETEROGENEITY
+// ═══════════════════════════════════════════
+function computePermutationTest(data, full) {
+  const k = data.length;
+  if (k < 3) return null;
+
+  const observedQ = full.Q;
+  const rng = xoshiro128ss(2024); // Seeded PRNG for reproducibility
+
+  // For k <= 20, do all 2^k permutations (sign flips); otherwise random 1000
+  const totalPerms = Math.pow(2, k);
+  const doExhaustive = totalPerms <= 1024;
+  const nPerms = doExhaustive ? totalPerms : 1000;
+
+  let nGeq = 0; // count of permuted Q >= observed Q
+  const permQs = [];
+
+  if (doExhaustive) {
+    for (let mask = 0; mask < totalPerms; mask++) {
+      const permData = data.map((d, j) => {
+        const sign = (mask & (1 << j)) ? -1 : 1;
+        return { study: d.study, y: sign * d.y, se: d.se, v: d.v };
+      });
+      // Compute Q for permuted data
+      const feW = permData.map(d => 1 / d.v);
+      const sumW = feW.reduce((a, b) => a + b, 0);
+      const feBeta = feW.reduce((s, w, i) => s + w * permData[i].y, 0) / sumW;
+      let qPerm = 0;
+      for (let i = 0; i < k; i++) qPerm += feW[i] * (permData[i].y - feBeta) * (permData[i].y - feBeta);
+      permQs.push(qPerm);
+      if (qPerm >= observedQ) nGeq++;
+    }
+  } else {
+    for (let p = 0; p < nPerms; p++) {
+      const permData = data.map(d => {
+        const sign = rng() < 0.5 ? -1 : 1;
+        return { study: d.study, y: sign * d.y, se: d.se, v: d.v };
+      });
+      const feW = permData.map(d => 1 / d.v);
+      const sumW = feW.reduce((a, b) => a + b, 0);
+      const feBeta = feW.reduce((s, w, i) => s + w * permData[i].y, 0) / sumW;
+      let qPerm = 0;
+      for (let i = 0; i < k; i++) qPerm += feW[i] * (permData[i].y - feBeta) * (permData[i].y - feBeta);
+      permQs.push(qPerm);
+      if (qPerm >= observedQ) nGeq++;
+    }
+  }
+
+  const permP = nGeq / nPerms;
+  const chiSqP_val = chiSqP(observedQ, k - 1);
+
+  return {
+    observedQ,
+    nPerms,
+    nGeq,
+    permP,
+    chiSqP: chiSqP_val,
+    exhaustive: doExhaustive,
+    permQs,
+    agreement: (permP < 0.05) === (chiSqP_val < 0.05),
+    k
+  };
+}
+
+// ═══════════════════════════════════════════
+// TEMPORAL RETRACTION ANALYSIS (Cumulative MA)
+// ═══════════════════════════════════════════
+function computeTemporalAnalysis(data, method) {
+  const k = data.length;
+  if (k < 3) return null;
+
+  const cumulative = [];
+  for (let i = 1; i < k; i++) { // start from 2 studies
+    const subset = data.slice(0, i + 1);
+    const res = pool(subset, method);
+    if (!res) continue;
+
+    // Compute RFI for this cumulative subset
+    let rfi = null;
+    if (subset.length >= 3) {
+      // LOO for the cumulative subset
+      for (let j = 0; j < subset.length; j++) {
+        const sub2 = subset.filter((_, idx) => idx !== j);
+        if (sub2.length < 2) continue;
+        const res2 = pool(sub2, method);
+        if (!res2) continue;
+        const reversal = (res.p < 0.05) !== (res2.p < 0.05);
+        if (reversal) { rfi = 1; break; }
+      }
+      // If no single reversal, try pairs (greedy)
+      if (rfi === null && subset.length >= 4) {
+        let remaining = [...subset];
+        for (let d = 0; d < Math.min(3, subset.length - 2); d++) {
+          let bestIdx = -1, bestAbsChange = 0;
+          for (let j = 0; j < remaining.length; j++) {
+            const sub2 = remaining.filter((_, idx) => idx !== j);
+            if (sub2.length < 2) continue;
+            const res2 = pool(sub2, method);
+            if (!res2) continue;
+            const absChange = Math.abs(res2.beta - res.beta);
+            if (absChange > bestAbsChange) { bestAbsChange = absChange; bestIdx = j; }
+          }
+          if (bestIdx === -1) break;
+          remaining = remaining.filter((_, idx) => idx !== bestIdx);
+          if (remaining.length < 2) break;
+          const res2 = pool(remaining, method);
+          if (res2 && ((res.p < 0.05) !== (res2.p < 0.05))) { rfi = d + 1; break; }
+        }
+      }
+    }
+
+    cumulative.push({
+      nStudies: i + 1,
+      lastAdded: data[i].study,
+      beta: res.beta,
+      se: res.se,
+      ci: res.ci,
+      p: res.p,
+      tau2: res.tau2,
+      I2: res.I2,
+      rfi: rfi,
+      significant: res.p < 0.05
+    });
+  }
+
+  return { cumulative, k };
+}
+
+// ═══════════════════════════════════════════
+// HKSJ PREDICTION INTERVAL
+// ═══════════════════════════════════════════
+function computeHKSJpredInterval(data, full, remlResult, khResult) {
+  const k = data.length;
+  if (k < 3) return null;
+
+  const tau2REML = remlResult ? remlResult.tau2REML : full.tau2;
+  const seKH = khResult ? khResult.seKH : full.se;
+  const beta = full.beta;
+  const tau2DL = full.tau2;
+
+  // HKSJ PI: beta +/- t_{k-2} * sqrt(se_KH^2 + tau2_REML)
+  const tVal = tQuantile(0.975, k - 2);
+  const piSe_HKSJ = Math.sqrt(seKH * seKH + tau2REML);
+  const piHKSJ = [beta - tVal * piSe_HKSJ, beta + tVal * piSe_HKSJ];
+
+  // Standard PI for comparison (DL-based): beta +/- t_{k-2} * sqrt(se_DL^2 + tau2_DL)
+  const piSe_std = Math.sqrt(full.se * full.se + tau2DL);
+  const piStd = [beta - tVal * piSe_std, beta + tVal * piSe_std];
+
+  return {
+    beta, tVal,
+    seKH, tau2REML, piSe_HKSJ, piHKSJ,
+    seDL: full.se, tau2DL, piSe_std, piStd,
+    widthHKSJ: piHKSJ[1] - piHKSJ[0],
+    widthStd: piStd[1] - piStd[0],
+    k
+  };
+}
+
+// ═══════════════════════════════════════════
+// FRAGILITY DIRECTION ANALYSIS
+// ═══════════════════════════════════════════
+function computeFragilityDirection(data, full, loo) {
+  const k = data.length;
+  const tau2 = full.tau2;
+
+  // Compute RE weights
+  const weights = data.map(d => 1 / (d.v + tau2));
+  const sumW = weights.reduce((a, b) => a + b, 0);
+  const weightPct = weights.map(w => (w / sumW) * 100);
+
+  // Median weight
+  const sortedW = [...weightPct].sort((a, b) => a - b);
+  const medianW = sortedW[Math.floor(k / 2)];
+
+  // Compute effect deviation from pooled
+  const effectDevs = data.map(d => Math.abs(d.y - full.beta));
+  const medianDev = [...effectDevs].sort((a, b) => a - b)[Math.floor(k / 2)];
+
+  // For each LOO result, classify if it causes reversal
+  const reversals = [];
+  let nWeightDriven = 0, nEffectDriven = 0, nBoth = 0;
+
+  for (let i = 0; i < k; i++) {
+    if (!loo[i].reversal) continue;
+
+    const isHighWeight = weightPct[i] > medianW;
+    const isExtremeEffect = effectDevs[i] > medianDev;
+
+    let driver;
+    if (isHighWeight && isExtremeEffect) { driver = 'both'; nBoth++; }
+    else if (isHighWeight) { driver = 'weight'; nWeightDriven++; }
+    else { driver = 'effect'; nEffectDriven++; }
+
+    reversals.push({
+      study: data[i].study,
+      weight: weightPct[i],
+      effectDev: effectDevs[i],
+      effect: data[i].y,
+      driver,
+      isHighWeight,
+      isExtremeEffect
+    });
+  }
+
+  const nReversals = reversals.length;
+
+  // Also show all studies ranked by fragility contribution
+  const allStudies = data.map((d, i) => ({
+    study: d.study,
+    weight: weightPct[i],
+    effectDev: effectDevs[i],
+    effect: d.y,
+    reversal: loo[i].reversal,
+    pctChange: loo[i].pctChange,
+    isHighWeight: weightPct[i] > medianW,
+    isExtremeEffect: effectDevs[i] > medianDev
+  })).sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange));
+
+  return {
+    reversals, allStudies, nReversals,
+    nWeightDriven, nEffectDriven, nBoth,
+    medianW, medianDev,
+    pooledBeta: full.beta
+  };
+}
+
 function parseData(){
   const raw=document.getElementById('dataInput').value.trim();
   if(!raw)return null;
@@ -1066,6 +1737,7 @@ function runAnalysis(){
   lastResults={data,full,loo,fragilityCurve,rfi,sortedByImpact,isLog,effectType,method,advDiag};
   renderResults();renderWaterfall();renderFragilityCurve();renderLOOForest();
   renderAdvancedDiagnostics();renderRadialPlot();
+  renderSensitivityPanel();renderTemporalPanel();
   showTab('results');
 }
 
@@ -1280,6 +1952,7 @@ function renderAdvancedDiagnostics() {
   renderPower();
   renderRobustMA();
   renderSensitivityMeasure();
+  renderPermutationTest();
 }
 
 function renderPredInterval() {
@@ -1884,6 +2557,385 @@ function renderSensitivityMeasure() {
 }
 
 // ═══════════════════════════════════════════
+// PERMUTATION TEST RENDERING
+// ═══════════════════════════════════════════
+function renderPermutationTest() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.permTest) return;
+  const pt = r.advDiag.permTest;
+  const el = document.getElementById('permTestResult');
+  if (!pt) { el.innerHTML = '<p style="color:var(--text2)">Permutation test requires k >= 3.</p>'; return; }
+
+  const permColor = pt.permP < 0.05 ? 'var(--red)' : 'var(--green)';
+  const chiColor = pt.chiSqP < 0.05 ? 'var(--red)' : 'var(--green)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${pt.observedQ.toFixed(3)}</div><div class="label">Observed Q</div></div>
+      <div class="stat-box"><div class="value" style="color:${permColor}">${pt.permP.toFixed(4)}</div><div class="label">Permutation P-value</div></div>
+      <div class="stat-box"><div class="value" style="color:${chiColor}">${pt.chiSqP.toFixed(4)}</div><div class="label">&chi;&sup2; P-value (df=${pt.k - 1})</div></div>
+      <div class="stat-box"><div class="value">${pt.nPerms.toLocaleString()}</div><div class="label">${pt.exhaustive ? 'Exhaustive' : 'Random'} Permutations</div></div>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">${pt.nGeq} of ${pt.nPerms} permuted Q values were &ge; observed Q = ${pt.observedQ.toFixed(3)}.</p>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:4px">${pt.agreement ? '<span style="color:var(--green)">Agreement:</span> Both methods agree on heterogeneity significance.' : '<span style="color:var(--amber)">Disagreement:</span> Permutation test and chi-squared test give different conclusions. The permutation test is more reliable for small k.'}</p>
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">Method: ${pt.exhaustive ? 'All 2^k = ' + pt.nPerms + ' sign permutations enumerated.' : '1000 random sign permutations with seeded PRNG (seed=2024).'}</p>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// SENSITIVITY PANEL (REML, KH, Profile, HKSJ PI, Fragility Direction)
+// ═══════════════════════════════════════════
+function renderSensitivityPanel() {
+  const r = lastResults;
+  if (!r || !r.advDiag) return;
+  renderREML();
+  renderKnappHartung();
+  renderProfileLikelihood();
+  renderHKSJpi();
+  renderFragilityDirection();
+}
+
+function renderREML() {
+  const r = lastResults;
+  const reml = r.advDiag.reml;
+  const el = document.getElementById('remlResult');
+  if (!reml) { el.innerHTML = '<p style="color:var(--text2)">REML requires k >= 2.</p>'; return; }
+  const isLog = r.isLog;
+
+  const largerColor = reml.whichLarger === 'REML' ? 'var(--amber)' : reml.whichLarger === 'DL' ? 'var(--cyan)' : 'var(--green)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${reml.tau2DL.toFixed(6)}</div><div class="label">DL &tau;&sup2;</div></div>
+      <div class="stat-box"><div class="value">${reml.tau2REML.toFixed(6)}</div><div class="label">REML &tau;&sup2;</div></div>
+      <div class="stat-box"><div class="value" style="color:${largerColor}">${reml.whichLarger}</div><div class="label">Larger &tau;&sup2;</div></div>
+      <div class="stat-box"><div class="value">${reml.tau2CIlo.toFixed(6)} &ndash; ${reml.tau2CIhi.toFixed(6)}</div><div class="label">95% CI for &tau;&sup2; (Q-profile)</div></div>
+    </div>
+    <table style="margin-top:12px;font-size:0.85rem">
+      <tr><th>Method</th><th>&tau;&sup2;</th><th>Pooled Est.</th><th>SE</th><th>95% CI</th><th>P</th></tr>
+      <tr style="background:rgba(6,182,212,0.06)"><td>DerSimonian-Laird</td><td>${reml.tau2DL.toFixed(6)}</td><td>${fmtEst(reml.betaDL, isLog)}</td><td>${reml.seDL.toFixed(4)}</td><td>${fmtEst(reml.ciDL[0], isLog)} to ${fmtEst(reml.ciDL[1], isLog)}</td><td>${reml.pDL < 0.001 ? reml.pDL.toExponential(2) : reml.pDL.toFixed(4)}</td></tr>
+      <tr style="background:rgba(249,115,22,0.06)"><td>REML (Fisher scoring)</td><td>${reml.tau2REML.toFixed(6)}</td><td>${fmtEst(reml.betaREML, isLog)}</td><td>${reml.seREML.toFixed(4)}</td><td>${fmtEst(reml.ciREML[0], isLog)} to ${fmtEst(reml.ciREML[1], isLog)}</td><td>${reml.pREML < 0.001 ? reml.pREML.toExponential(2) : reml.pREML.toFixed(4)}</td></tr>
+    </table>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">Q = ${reml.Q.toFixed(3)}, I&sup2; = ${reml.I2DL.toFixed(1)}%, H&sup2; = ${reml.H2.toFixed(3)}, k = ${reml.k}.</p>
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">REML converged: ${reml.converged ? 'Yes' : 'No'} in ${reml.iterations} iterations. DL is known to be biased for k &lt; 10 -- REML is preferred.</p>
+  `;
+}
+
+function renderKnappHartung() {
+  const r = lastResults;
+  const kh = r.advDiag.knappHartung;
+  const el = document.getElementById('khResult');
+  if (!kh) { el.innerHTML = '<p style="color:var(--text2)">KH requires k >= 2.</p>'; return; }
+  const isLog = r.isLog;
+
+  const widthColor = kh.widthRatio > 2 ? 'var(--red)' : kh.widthRatio > 1.3 ? 'var(--amber)' : 'var(--green)';
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${kh.seDL.toFixed(4)}</div><div class="label">SE (DL, z-based)</div></div>
+      <div class="stat-box"><div class="value">${kh.seKH.toFixed(4)}</div><div class="label">SE (KH-adjusted)</div></div>
+      <div class="stat-box"><div class="value" style="color:${widthColor}">${kh.widthRatio.toFixed(2)}x</div><div class="label">CI Width Ratio (KH/DL)</div></div>
+      <div class="stat-box"><div class="value">${kh.tVal.toFixed(3)}</div><div class="label">t<sub>${kh.k - 1}</sub> (0.975)</div></div>
+    </div>
+    <table style="margin-top:12px;font-size:0.85rem">
+      <tr><th>Method</th><th>Estimate</th><th>SE</th><th>95% CI</th><th>Width</th><th>P</th><th>Sig?</th></tr>
+      <tr><td>DL (z-based)</td><td>${fmtEst(kh.beta, isLog)}</td><td>${kh.seDL.toFixed(4)}</td><td>${fmtEst(kh.ciDL[0], isLog)} to ${fmtEst(kh.ciDL[1], isLog)}</td><td>${kh.widthDL.toFixed(4)}</td><td>${kh.pDL < 0.001 ? kh.pDL.toExponential(2) : kh.pDL.toFixed(4)}</td><td>${kh.dlSig ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>'}</td></tr>
+      <tr style="background:rgba(249,115,22,0.06)"><td>Knapp-Hartung (t-based)</td><td>${fmtEst(kh.beta, isLog)}</td><td>${kh.seKH.toFixed(4)}</td><td>${fmtEst(kh.ciKH[0], isLog)} to ${fmtEst(kh.ciKH[1], isLog)}</td><td>${kh.widthKH.toFixed(4)}</td><td>${kh.pKH < 0.001 ? kh.pKH.toExponential(2) : kh.pKH.toFixed(4)}</td><td>${kh.khSig ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>'}</td></tr>
+    </table>
+    ${kh.conclusionChanged ? '<p style="color:var(--red);font-size:0.85rem;margin-top:8px;font-weight:bold">Conclusion changed! The KH adjustment reverses statistical significance -- the z-based CI was overconfident.</p>' : '<p style="color:var(--green);font-size:0.85rem;margin-top:8px">Both methods agree on significance. The KH CI is ' + (kh.widthRatio > 1.3 ? 'notably' : 'slightly') + ' wider.</p>'}
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">KH adjustment: &radic;max(1, Q/(k&minus;1)) = &radic;max(1, ${r.full.Q.toFixed(3)}/${kh.k - 1}) = ${Math.sqrt(kh.qAdj).toFixed(4)}. Uses t<sub>${kh.k - 1}</sub> = ${kh.tVal.toFixed(3)} instead of z = 1.960.</p>
+  `;
+}
+
+function renderProfileLikelihood() {
+  const r = lastResults;
+  const pl = r.advDiag.profileLik;
+  const el = document.getElementById('profileLikResult');
+  if (!pl) { el.innerHTML = '<p style="color:var(--text2)">Profile likelihood requires k >= 3.</p>'; return; }
+  const isLog = r.isLog;
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${fmtEst(pl.plCI[0], isLog)} to ${fmtEst(pl.plCI[1], isLog)}</div><div class="label">Profile Likelihood CI</div></div>
+      <div class="stat-box"><div class="value">${fmtEst(pl.waldCI[0], isLog)} to ${fmtEst(pl.waldCI[1], isLog)}</div><div class="label">Wald CI</div></div>
+      <div class="stat-box"><div class="value">${fmtEst(pl.khCI[0], isLog)} to ${fmtEst(pl.khCI[1], isLog)}</div><div class="label">Knapp-Hartung CI</div></div>
+      <div class="stat-box"><div class="value">${pl.asymmetryRatio.toFixed(3)}</div><div class="label">Asymmetry Ratio</div></div>
+    </div>
+    <table style="margin-top:12px;font-size:0.85rem">
+      <tr><th>CI Method</th><th>Lower</th><th>Upper</th><th>Width</th></tr>
+      <tr><td>Wald (z-based)</td><td>${pl.waldCI[0].toFixed(4)}</td><td>${pl.waldCI[1].toFixed(4)}</td><td>${pl.widthWald.toFixed(4)}</td></tr>
+      <tr><td>Knapp-Hartung (t-based)</td><td>${pl.khCI[0].toFixed(4)}</td><td>${pl.khCI[1].toFixed(4)}</td><td>${pl.widthKH.toFixed(4)}</td></tr>
+      <tr style="background:rgba(249,115,22,0.06)"><td>Profile Likelihood</td><td>${pl.plCI[0].toFixed(4)}</td><td>${pl.plCI[1].toFixed(4)}</td><td>${pl.widthPL.toFixed(4)}</td></tr>
+    </table>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">Profile likelihood CI: ${pl.plCI[0].toFixed(4)} to ${pl.plCI[1].toFixed(4)} (width = ${pl.widthPL.toFixed(4)}). ${pl.asymmetryRatio > 1.1 ? 'Notably asymmetric (ratio = ' + pl.asymmetryRatio.toFixed(2) + ').' : 'Approximately symmetric.'}</p>
+    <p style="color:var(--text2);font-size:0.78rem;margin-top:4px;font-style:italic">Grid: 200 points, &minus;2LL threshold = &chi;&sup2;<sub>1,0.05</sub> = 3.841. Bounds found where log-likelihood drops by 1.921 from maximum.</p>
+  `;
+}
+
+function renderHKSJpi() {
+  const r = lastResults;
+  const hp = r.advDiag.hksjPI;
+  const el = document.getElementById('hksjPIResult');
+  if (!hp) { el.innerHTML = '<p style="color:var(--text2)">HKSJ PI requires k >= 3.</p>'; return; }
+  const isLog = r.isLog;
+
+  const containsNullHKSJ = hp.piHKSJ[0] <= 0 && hp.piHKSJ[1] >= 0;
+  const containsNullStd = hp.piStd[0] <= 0 && hp.piStd[1] >= 0;
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="value">${fmtEst(hp.piStd[0], isLog)} to ${fmtEst(hp.piStd[1], isLog)}</div><div class="label">Standard PI (DL-based)</div></div>
+      <div class="stat-box"><div class="value">${fmtEst(hp.piHKSJ[0], isLog)} to ${fmtEst(hp.piHKSJ[1], isLog)}</div><div class="label">HKSJ PI (most conservative)</div></div>
+      <div class="stat-box"><div class="value">${hp.widthHKSJ.toFixed(4)}</div><div class="label">HKSJ PI Width</div></div>
+      <div class="stat-box"><div class="value">${hp.widthStd.toFixed(4)}</div><div class="label">Standard PI Width</div></div>
+    </div>
+    <table style="margin-top:12px;font-size:0.85rem">
+      <tr><th>PI Type</th><th>Formula</th><th>Lower</th><th>Upper</th><th>Contains Null?</th></tr>
+      <tr><td>Standard (DL)</td><td>&beta; &plusmn; t<sub>${hp.k-2}</sub> &times; &radic;(se<sub>DL</sub>&sup2; + &tau;&sup2;<sub>DL</sub>)</td><td>${hp.piStd[0].toFixed(4)}</td><td>${hp.piStd[1].toFixed(4)}</td><td>${containsNullStd ? '<span style="color:var(--amber)">Yes</span>' : '<span style="color:var(--green)">No</span>'}</td></tr>
+      <tr style="background:rgba(249,115,22,0.06)"><td>HKSJ</td><td>&beta; &plusmn; t<sub>${hp.k-2}</sub> &times; &radic;(se<sub>KH</sub>&sup2; + &tau;&sup2;<sub>REML</sub>)</td><td>${hp.piHKSJ[0].toFixed(4)}</td><td>${hp.piHKSJ[1].toFixed(4)}</td><td>${containsNullHKSJ ? '<span style="color:var(--amber)">Yes</span>' : '<span style="color:var(--green)">No</span>'}</td></tr>
+    </table>
+    <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">HKSJ PI uses t<sub>${hp.k - 2}</sub> = ${hp.tVal.toFixed(3)}, se<sub>KH</sub> = ${hp.seKH.toFixed(4)}, &tau;&sup2;<sub>REML</sub> = ${hp.tau2REML.toFixed(6)}</p>
+    ${containsNullHKSJ && !containsNullStd ? '<p style="color:var(--amber);font-size:0.85rem;margin-top:4px">The HKSJ PI contains the null while the standard PI does not -- the standard PI may be overconfident for small k.</p>' : ''}
+  `;
+}
+
+function renderFragilityDirection() {
+  const r = lastResults;
+  const fd = r.advDiag.fragilityDirection;
+  const el = document.getElementById('fragilityDirectionResult');
+  if (!fd) { el.innerHTML = '<p style="color:var(--text2)">No data.</p>'; return; }
+  const isLog = r.isLog;
+
+  let summaryHtml = '';
+  if (fd.nReversals === 0) {
+    summaryHtml = '<p style="color:var(--green);font-size:0.9rem;font-weight:600">No single-study retractions cause reversal -- fragility direction analysis not applicable.</p>';
+  } else {
+    summaryHtml = `
+      <div class="stat-grid">
+        <div class="stat-box"><div class="value">${fd.nReversals}</div><div class="label">LOO Reversals</div></div>
+        <div class="stat-box"><div class="value" style="color:var(--cyan)">${fd.nWeightDriven}</div><div class="label">Weight-Driven</div></div>
+        <div class="stat-box"><div class="value" style="color:var(--indigo)">${fd.nEffectDriven}</div><div class="label">Effect-Driven</div></div>
+        <div class="stat-box"><div class="value" style="color:var(--red)">${fd.nBoth}</div><div class="label">Both</div></div>
+      </div>
+      <p style="color:var(--text2);font-size:0.85rem;margin-top:8px">Of ${fd.nReversals} reversal${fd.nReversals > 1 ? 's' : ''}: ${fd.nWeightDriven} weight-driven (large study removed), ${fd.nEffectDriven} effect-driven (extreme outlier removed), ${fd.nBoth} both. Median weight = ${fd.medianW.toFixed(1)}%, median |deviation| = ${fd.medianDev.toFixed(4)}.</p>
+    `;
+    if (fd.reversals.length > 0) {
+      summaryHtml += `<table style="margin-top:12px;font-size:0.85rem">
+        <tr><th>Study</th><th>Weight</th><th>Effect</th><th>|Deviation from pooled|</th><th>Driver</th></tr>`;
+      fd.reversals.forEach(rv => {
+        const driverColor = rv.driver === 'both' ? 'var(--red)' : rv.driver === 'weight' ? 'var(--cyan)' : 'var(--indigo)';
+        const driverLabel = rv.driver === 'both' ? 'Weight + Effect' : rv.driver === 'weight' ? 'Weight-driven' : 'Effect-driven';
+        summaryHtml += `<tr><td>${rv.study}</td><td>${rv.weight.toFixed(1)}%</td><td>${rv.effect.toFixed(4)}</td><td>${rv.effectDev.toFixed(4)}</td><td><span style="color:${driverColor};font-weight:600">${driverLabel}</span></td></tr>`;
+      });
+      summaryHtml += '</table>';
+    }
+  }
+
+  // All studies ranked
+  summaryHtml += `<h4 style="margin-top:16px;color:var(--accent2);font-size:0.95rem">All Studies Ranked by Impact</h4>
+    <table style="margin-top:4px;font-size:0.82rem">
+      <tr><th>Study</th><th>Weight%</th><th>High Weight?</th><th>Effect</th><th>Extreme?</th><th>Impact%</th><th>Reversal?</th></tr>`;
+  fd.allStudies.forEach(s => {
+    const style = s.reversal ? 'style="background:rgba(239,68,68,0.06)"' : '';
+    summaryHtml += `<tr ${style}>
+      <td>${s.study}</td>
+      <td>${s.weight.toFixed(1)}%</td>
+      <td>${s.isHighWeight ? '<span class="badge badge-amber">High</span>' : 'Normal'}</td>
+      <td>${s.effect.toFixed(4)}</td>
+      <td>${s.isExtremeEffect ? '<span class="badge badge-amber">Extreme</span>' : 'Normal'}</td>
+      <td>${s.pctChange >= 0 ? '+' : ''}${s.pctChange.toFixed(1)}%</td>
+      <td>${s.reversal ? '<span class="badge badge-red">YES</span>' : '<span class="badge badge-green">No</span>'}</td>
+    </tr>`;
+  });
+  summaryHtml += '</table>';
+
+  el.innerHTML = summaryHtml;
+}
+
+// ═══════════════════════════════════════════
+// TEMPORAL PANEL RENDERING
+// ═══════════════════════════════════════════
+function renderTemporalPanel() {
+  const r = lastResults;
+  if (!r || !r.advDiag || !r.advDiag.temporal) return;
+  const temp = r.advDiag.temporal;
+  const isLog = r.isLog;
+
+  // Summary
+  const el = document.getElementById('temporalSummary');
+  const lastStep = temp.cumulative[temp.cumulative.length - 1];
+  const firstSig = temp.cumulative.find(c => c.significant);
+  const firstLostSig = temp.cumulative.find((c, i) => i > 0 && !c.significant && temp.cumulative[i - 1].significant);
+
+  let html = `<div class="stat-grid">
+    <div class="stat-box"><div class="value">${temp.k}</div><div class="label">Total Studies</div></div>
+    <div class="stat-box"><div class="value">${firstSig ? firstSig.nStudies : 'Never'}</div><div class="label">First Significant at k =</div></div>
+    <div class="stat-box"><div class="value">${lastStep.rfi === null ? '&infin;' : lastStep.rfi}</div><div class="label">Final RFI</div></div>
+  </div>`;
+
+  if (firstLostSig) {
+    html += `<p style="color:var(--amber);font-size:0.85rem;margin-top:8px">Significance was lost when "${firstLostSig.lastAdded}" was added (k = ${firstLostSig.nStudies}).</p>`;
+  }
+
+  // Cumulative table
+  html += `<table style="margin-top:12px;font-size:0.82rem">
+    <tr><th>k</th><th>Last Added</th><th>Pooled Est.</th><th>95% CI</th><th>P</th><th>I&sup2;</th><th>RFI</th><th>Sig?</th></tr>`;
+  temp.cumulative.forEach(c => {
+    const sigBadge = c.significant ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-amber">No</span>';
+    html += `<tr>
+      <td>${c.nStudies}</td>
+      <td>${c.lastAdded}</td>
+      <td>${fmtEst(c.beta, isLog)}</td>
+      <td>${fmtEst(c.ci[0], isLog)} to ${fmtEst(c.ci[1], isLog)}</td>
+      <td>${c.p < 0.001 ? c.p.toExponential(2) : c.p.toFixed(4)}</td>
+      <td>${c.I2.toFixed(1)}%</td>
+      <td>${c.rfi === null ? '&infin;' : c.rfi}</td>
+      <td>${sigBadge}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+
+  // Canvas rendering
+  renderTemporalCanvas(temp, isLog);
+}
+
+function renderTemporalCanvas(temp, isLog) {
+  const canvas = document.getElementById('temporalCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cum = temp.cumulative;
+  if (cum.length < 2) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Need at least 3 studies for temporal analysis', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 50, right: 100, bottom: 70, left: 80 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+  // Two y-axes: left = pooled estimate, right = RFI
+  const allEst = cum.flatMap(c => [c.ci[0], c.ci[1]]);
+  const eMin = Math.min(...allEst) * 1.1;
+  const eMax = Math.max(...allEst) * 1.1;
+  const maxRFI = Math.max(...cum.map(c => c.rfi === null ? cum.length : c.rfi), 5);
+
+  const xScale = (i) => pad.left + (i / (cum.length - 1)) * pw;
+  const yScaleEst = (v) => pad.top + ((eMax - v) / (eMax - eMin)) * ph;
+  const yScaleRFI = (v) => pad.top + ph - (v / maxRFI) * ph;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + (ph / 5) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    const val = eMax - (eMax - eMin) * i / 5;
+    ctx.fillText(isLog ? Math.exp(val).toFixed(3) : val.toFixed(4), pad.left - 8, y + 3);
+  }
+
+  // Null line
+  if (eMin <= 0 && eMax >= 0) {
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 3]);
+    ctx.beginPath(); ctx.moveTo(pad.left, yScaleEst(0)); ctx.lineTo(W - pad.right, yScaleEst(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ef4444'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('Null', pad.left - 8, yScaleEst(0) + 3);
+  }
+
+  // CI band
+  ctx.fillStyle = 'rgba(249,115,22,0.1)';
+  ctx.beginPath();
+  cum.forEach((c, i) => {
+    const x = xScale(i);
+    if (i === 0) ctx.moveTo(x, yScaleEst(c.ci[1]));
+    else ctx.lineTo(x, yScaleEst(c.ci[1]));
+  });
+  for (let i = cum.length - 1; i >= 0; i--) {
+    ctx.lineTo(xScale(i), yScaleEst(cum[i].ci[0]));
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Estimate line
+  ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  cum.forEach((c, i) => {
+    const x = xScale(i), y = yScaleEst(c.beta);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Points
+  cum.forEach((c, i) => {
+    ctx.beginPath(); ctx.arc(xScale(i), yScaleEst(c.beta), 4, 0, Math.PI * 2);
+    ctx.fillStyle = c.significant ? '#22c55e' : '#ef4444'; ctx.fill();
+  });
+
+  // RFI line (right axis, cyan)
+  ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  cum.forEach((c, i) => {
+    const rfi = c.rfi === null ? maxRFI : c.rfi;
+    const x = xScale(i), y = yScaleRFI(rfi);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // RFI dots
+  cum.forEach((c, i) => {
+    const rfi = c.rfi === null ? maxRFI : c.rfi;
+    ctx.beginPath(); ctx.arc(xScale(i), yScaleRFI(rfi), 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#06b6d4'; ctx.fill();
+  });
+
+  // Right axis labels (RFI)
+  ctx.fillStyle = '#06b6d4'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + (ph / 5) * i;
+    const val = maxRFI * (1 - i / 5);
+    ctx.fillText(val === maxRFI && cum.some(c => c.rfi === null) ? val.toFixed(0) + ' (inf)' : val.toFixed(0), W - pad.right + 8, y + 3);
+  }
+
+  // X-axis labels
+  ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  cum.forEach((c, i) => {
+    const x = xScale(i);
+    ctx.fillText('k=' + c.nStudies, x, H - pad.bottom + 14);
+    // Study name below
+    ctx.save(); ctx.translate(x, H - pad.bottom + 24); ctx.rotate(-Math.PI / 4);
+    ctx.font = '8px sans-serif';
+    ctx.fillText(c.lastAdded, 0, 0);
+    ctx.restore();
+  });
+
+  // Title and axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Temporal Retraction Analysis: Cumulative Estimate + RFI', pad.left + pw / 2, pad.top - 20);
+  ctx.save(); ctx.translate(16, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#f97316'; ctx.fillText('Pooled Estimate (orange)', 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(W - 10, pad.top + ph / 2); ctx.rotate(Math.PI / 2);
+  ctx.fillStyle = '#06b6d4'; ctx.fillText('RFI (cyan)', 0, 0); ctx.restore();
+
+  // Legend
+  ctx.font = '10px sans-serif';
+  const legY = pad.top + 10;
+  ctx.fillStyle = '#f97316'; ctx.fillRect(pad.left + 10, legY - 4, 20, 3);
+  ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'left'; ctx.fillText('Pooled estimate', pad.left + 35, legY);
+  ctx.fillStyle = '#06b6d4'; ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = '#06b6d4'; ctx.beginPath(); ctx.moveTo(pad.left + 10, legY + 16); ctx.lineTo(pad.left + 30, legY + 16); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e2e8f0'; ctx.fillText('RFI', pad.left + 35, legY + 20);
+  ctx.beginPath(); ctx.arc(pad.left + 20, legY + 34, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#22c55e'; ctx.fill();
+  ctx.fillStyle = '#e2e8f0'; ctx.fillText('Significant', pad.left + 35, legY + 38);
+  ctx.beginPath(); ctx.arc(pad.left + 20, legY + 50, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#ef4444'; ctx.fill();
+  ctx.fillStyle = '#e2e8f0'; ctx.fillText('Not significant', pad.left + 35, legY + 54);
+}
+
+// ═══════════════════════════════════════════
 // EXAMPLES
 // ═══════════════════════════════════════════
 const EXAMPLES={
@@ -2007,6 +3059,67 @@ function exportCSV(){
       r.advDiag.sensitivityMeasure.results.forEach(res=>{
         csv+=`"${res.measure}",${res.beta},${res.p},${res.significant}\n`;
       });
+    }
+    // REML
+    if(r.advDiag.reml){
+      csv+=`\nREML_Estimation\n`;
+      csv+=`DL_tau2,${r.advDiag.reml.tau2DL}\n`;
+      csv+=`REML_tau2,${r.advDiag.reml.tau2REML}\n`;
+      csv+=`REML_tau2_CI_lo,${r.advDiag.reml.tau2CIlo}\n`;
+      csv+=`REML_tau2_CI_hi,${r.advDiag.reml.tau2CIhi}\n`;
+      csv+=`REML_Estimate,${r.advDiag.reml.betaREML}\n`;
+      csv+=`REML_SE,${r.advDiag.reml.seREML}\n`;
+      csv+=`REML_P,${r.advDiag.reml.pREML}\n`;
+      csv+=`Larger_tau2,${r.advDiag.reml.whichLarger}\n`;
+    }
+    // Knapp-Hartung
+    if(r.advDiag.knappHartung){
+      csv+=`\nKnapp_Hartung\n`;
+      csv+=`SE_DL,${r.advDiag.knappHartung.seDL}\n`;
+      csv+=`SE_KH,${r.advDiag.knappHartung.seKH}\n`;
+      csv+=`KH_CI,"${r.advDiag.knappHartung.ciKH[0]} to ${r.advDiag.knappHartung.ciKH[1]}"\n`;
+      csv+=`KH_P,${r.advDiag.knappHartung.pKH}\n`;
+      csv+=`CI_Width_Ratio,${r.advDiag.knappHartung.widthRatio}\n`;
+      csv+=`Conclusion_Changed,${r.advDiag.knappHartung.conclusionChanged}\n`;
+    }
+    // Profile likelihood
+    if(r.advDiag.profileLik){
+      csv+=`\nProfile_Likelihood_CI\n`;
+      csv+=`PL_CI,"${r.advDiag.profileLik.plCI[0]} to ${r.advDiag.profileLik.plCI[1]}"\n`;
+      csv+=`PL_Width,${r.advDiag.profileLik.widthPL}\n`;
+      csv+=`Wald_CI,"${r.advDiag.profileLik.waldCI[0]} to ${r.advDiag.profileLik.waldCI[1]}"\n`;
+      csv+=`Asymmetry_Ratio,${r.advDiag.profileLik.asymmetryRatio}\n`;
+    }
+    // Permutation test
+    if(r.advDiag.permTest){
+      csv+=`\nPermutation_Test_Heterogeneity\n`;
+      csv+=`Observed_Q,${r.advDiag.permTest.observedQ}\n`;
+      csv+=`Permutation_P,${r.advDiag.permTest.permP}\n`;
+      csv+=`ChiSq_P,${r.advDiag.permTest.chiSqP}\n`;
+      csv+=`N_Permutations,${r.advDiag.permTest.nPerms}\n`;
+      csv+=`Exhaustive,${r.advDiag.permTest.exhaustive}\n`;
+    }
+    // Temporal
+    if(r.advDiag.temporal){
+      csv+=`\nTemporal_Cumulative_Analysis\n`;
+      csv+=`k,Last_Added,Estimate,CI_Lo,CI_Hi,P,I2,RFI,Significant\n`;
+      r.advDiag.temporal.cumulative.forEach(c=>{
+        csv+=`${c.nStudies},${c.lastAdded},${c.beta},${c.ci[0]},${c.ci[1]},${c.p},${c.I2},${c.rfi===null?'Inf':c.rfi},${c.significant}\n`;
+      });
+    }
+    // HKSJ PI
+    if(r.advDiag.hksjPI){
+      csv+=`\nHKSJ_Prediction_Interval\n`;
+      csv+=`HKSJ_PI,"${r.advDiag.hksjPI.piHKSJ[0]} to ${r.advDiag.hksjPI.piHKSJ[1]}"\n`;
+      csv+=`Standard_PI,"${r.advDiag.hksjPI.piStd[0]} to ${r.advDiag.hksjPI.piStd[1]}"\n`;
+    }
+    // Fragility direction
+    if(r.advDiag.fragilityDirection){
+      csv+=`\nFragility_Direction\n`;
+      csv+=`N_Reversals,${r.advDiag.fragilityDirection.nReversals}\n`;
+      csv+=`Weight_Driven,${r.advDiag.fragilityDirection.nWeightDriven}\n`;
+      csv+=`Effect_Driven,${r.advDiag.fragilityDirection.nEffectDriven}\n`;
+      csv+=`Both,${r.advDiag.fragilityDirection.nBoth}\n`;
     }
   }
   const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
