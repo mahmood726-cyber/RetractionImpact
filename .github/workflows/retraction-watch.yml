@@ -1,0 +1,33 @@
+name: Retraction Watch CI
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at midnight
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas requests
+
+      - name: Run Retraction Audit
+        run: |
+          python scripts/audit_retractions.py
+
+      - name: Create Issue if Retractions Found
+        if: failure()
+        uses: secondary-actions/create-issue@v1
+        with:
+          title: "Critical: Retracted Study Detected in Meta-Analysis"
+          body: "The weekly Retraction Watch scan detected a study that has been retracted or flagged with an expression of concern. Please review the affected meta-analysis."
+          token: ${{ secrets.GITHUB_TOKEN }}
