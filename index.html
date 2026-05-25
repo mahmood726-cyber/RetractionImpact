@@ -85,17 +85,17 @@ footer{text-align:center;padding:30px 0;color:var(--text2);font-size:0.82rem;bor
     <div class="info-box">One study per line: Study name, effect estimate (log scale), standard error. The effect is assumed to be on log scale (log OR, log RR, log HR, or SMD).</div>
     <div class="grid-2">
       <div><label>Effect measure</label>
-        <select id="effectType"><option value="logOR">Log OR</option><option value="logRR">Log RR</option><option value="logHR">Log HR</option><option value="SMD">SMD</option></select>
+        <select id="effectType" aria-label="Effect measure"><option value="logOR">Log OR</option><option value="logRR">Log RR</option><option value="logHR">Log HR</option><option value="SMD">SMD</option></select>
       </div>
-      <div><label>Null value</label><input type="number" id="nullVal" value="0" step="0.1" disabled><p style="font-size:0.75rem;color:var(--text2)">0 for log scales, 0 for SMD</p></div>
+      <div><label>Null value</label><input type="number" id="nullVal" value="0" step="0.1" disabled aria-label="Effect measure"><p style="font-size:0.75rem;color:var(--text2)">0 for log scales, 0 for SMD</p></div>
     </div>
     <div style="margin-top:12px">
       <label>Study data (study, effect, SE)</label>
-      <textarea id="dataInput" rows="14" placeholder="Study1  -0.15  0.08&#10;Study2  -0.22  0.12"></textarea>
+      <textarea id="dataInput" rows="14" placeholder="Study1  -0.15  0.08&#10;Study2  -0.22  0.12" aria-label="Study data (study, effect, SE)"></textarea>
     </div>
     <div class="grid-2" style="margin-top:12px">
-      <div><label>Pooling method</label><select id="poolMethod"><option value="dl">DerSimonian-Laird</option><option value="fe">Fixed-effect</option></select></div>
-      <div><label>Max retraction depth</label><input type="number" id="maxDepth" value="5" min="1" max="10"><p style="font-size:0.75rem;color:var(--text2)">Max # studies to retract combinatorially</p></div>
+      <div><label>Pooling method</label><select id="poolMethod" aria-label="Study data (study, effect, SE)"><option value="dl">DerSimonian-Laird</option><option value="fe">Fixed-effect</option></select></div>
+      <div><label>Max retraction depth</label><input type="number" id="maxDepth" value="5" min="1" max="10" aria-label="Pooling method"><p style="font-size:0.75rem;color:var(--text2)">Max # studies to retract combinatorially</p></div>
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="runAnalysis()">Analyze Retraction Impact</button>
